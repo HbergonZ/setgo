@@ -1,0 +1,16 @@
+{
+  "name": "setgo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SetGo - contador de séries de treino para a Xiaomi Smart Band 8 Pro (Vela JS Quick App)",
+  "scripts": {
+    "start": "aiot start --watch",
+    "build": "aiot build",
+    "test": "node --test tests/modelo.test.mjs",
+    "deploy": "node tools/deploy.mjs"
+  },
+  "devDependencies": {
+    "@aiot-toolkit/jsc": "1.0.8",
+    "aiot-toolkit": "2.0.5"
+  }
+}

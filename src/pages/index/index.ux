@@ -1,0 +1,34 @@
+<template>
+  <div class="page">
+    <text class="logo">SETGO</text>
+    <text class="mbtn" onclick="irAvulso">Treino avulso</text>
+    <text class="mbtn" onclick="irSalvos">Treinos salvos</text>
+    <text class="cont" show="{{ temSessao }}" onclick="continuar">CONTINUAR TREINO</text>
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+import { carregar } from '../../common/sessao'
+import { treinoFeito } from '../../common/modelo'
+
+export default {
+  private: { temSessao: false },
+  onShow() {
+    var pagina = this
+    carregar(function (s) {
+      pagina.temSessao = !!(s && s.ex && !treinoFeito(s))
+    })
+  },
+  irAvulso() { router.push({ uri: '/pages/builder' }) },
+  irSalvos() { router.push({ uri: '/pages/salvos' }) },
+  continuar() { router.push({ uri: '/pages/treino' }) }
+}
+</script>
+
+<style>
+.page { flex-direction: column; align-items: center; background-color: #000000; padding-top: 16px; padding-left: 10px; padding-right: 10px; }
+.logo { height: 36px; font-size: 26px; font-weight: bold; color: #ff7a2e; text-align: center; letter-spacing: 1px; }
+.mbtn { width: 176px; height: 54px; margin-top: 10px; font-size: 18px; color: #ffffff; text-align: center; background-color: #16181a; border-radius: 16px; }
+.cont { width: 176px; height: 34px; margin-top: 10px; font-size: 15px; color: #ff7a2e; text-align: center; }
+</style>

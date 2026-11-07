@@ -1,0 +1,203 @@
+<template>
+  <div class="page">
+    <text class="sit">{{ sit }}</text>
+    <text class="nome">{{ nome }}</text>
+    <div class="bigrow">
+      <text class="big">{{ bigNum }}</text>
+      <text class="bigden">{{ bigDen }}</text>
+    </div>
+    <text class="alvo">{{ alvo }}</text>
+    <div class="dots">
+      <text class="dot {{ $item ? 'f' : '' }}" for="{{ dots }}"></text>
+    </div>
+    <text class="check {{ fim ? 'next' : '' }}" onclick="check">{{ botao }}</text>
+    <text class="undo" onclick="desfazer">desfazer</text>
+
+    <!-- Isometria: contagem do tempo do exercício -->
+    <div class="ovl tempo" show="{{ tempoOn }}">
+      <text class="olab">Segure a posição</text>
+      <text class="onum">{{ tempoNum }}</text>
+      <div class="bar"><div class="barfill" style="width: {{ tempoW }}px"></div></div>
+      <div class="obtns">
+        <text class="ob sec" onclick="cancelarTempo">Cancelar</text>
+        <text class="ob pri" onclick="prontoTempo">Pronto</text>
+      </div>
+    </div>
+
+    <!-- Descanso entre séries -->
+    <div class="ovl rest" show="{{ restOn }}">
+      <text class="olab">Descanso</text>
+      <text class="onum">{{ restNum }}</text>
+      <div class="bar"><div class="barfill" style="width: {{ restW }}px"></div></div>
+      <div class="obtns">
+        <text class="ob sec" onclick="mais15">+15s</text>
+        <text class="ob pri" onclick="pularRest">Pular</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+import vibrator from '@system.vibrator'
+import brightness from '@system.brightness'
+import { obter, persistir } from '../../common/sessao'
+import { alvoEx } from '../../common/modelo'
+
+var LARGURA = 150
+var restTimer = null
+var tempoTimer = null
+
+function vibrar(modo) {
+  try { vibrator.vibrate({ mode: modo }) } catch (e) {}
+}
+
+export default {
+  protected: { idx: '0' },
+  private: {
+    nome: '', sit: '', alvo: '', bigNum: '', bigDen: '', dots: [], botao: 'CHECK', fim: false,
+    restOn: false, restNum: 0, restW: 0, restTotal: 30,
+    tempoOn: false, tempoNum: 0, tempoW: 0
+  },
+  i() { return parseInt(this.idx, 10) || 0 },
+  onShow() {
+    try { brightness.setKeepScreenOn({ keepScreenOn: true }) } catch (e) {}
+    this.render()
+  },
+  onHide() {
+    try { brightness.setKeepScreenOn({ keepScreenOn: false }) } catch (e) {}
+  },
+  onDestroy() { this.pararTimers() },
+  pararTimers() {
+    if (restTimer !== null) { clearInterval(restTimer); restTimer = null }
+    if (tempoTimer !== null) { clearInterval(tempoTimer); tempoTimer = null }
+  },
+  render() {
+    var s = obter()
+    if (!s) { router.replace({ uri: '/pages/index' }); return }
+    var i = this.i()
+    var e = s.ex[i]
+    var d = s.done[i]
+    this.nome = e.nome
+    this.alvo = alvoEx(e)
+    this.fim = d >= e.series
+    if (this.fim) {
+      this.sit = 'EXERCÍCIO FEITO'
+      this.bigNum = 'OK'; this.bigDen = ''
+      this.botao = (i < s.ex.length - 1) ? 'PRÓXIMO' : 'VOLTAR'
+    } else {
+      this.sit = 'SÉRIE ' + (d + 1) + ' de ' + e.series
+      this.bigNum = String(d + 1); this.bigDen = '/' + e.series
+      this.botao = 'CHECK'
+    }
+    var dots = []
+    for (var k = 0; k < e.series; k++) dots.push(k < d)
+    this.dots = dots
+  },
+  check() {
+    var s = obter()
+    var i = this.i()
+    var e = s.ex[i]
+    if (s.done[i] >= e.series) {
+      if (i < s.ex.length - 1) router.replace({ uri: '/pages/exercicio', params: { idx: String(i + 1) } })
+      else router.back()
+      return
+    }
+    if (e.tipo === 'tempo') this.iniciarTempo(e.seg)
+    else this.concluirSerie()
+  },
+  concluirSerie() {
+    var s = obter()
+    var i = this.i()
+    var e = s.ex[i]
+    s.done[i]++
+    persistir()
+    this.render()
+    if (s.done[i] < e.series) {
+      vibrar('short')
+      this.iniciarDescanso(e.descanso)
+    } else {
+      vibrar('long')
+    }
+  },
+  desfazer() {
+    var s = obter()
+    var i = this.i()
+    if (s.done[i] > 0) { s.done[i]--; persistir(); this.render() }
+  },
+
+  // Isometria
+  iniciarTempo(seg) {
+    var pagina = this
+    this.pararTimers()
+    this.tempoW = LARGURA
+    this.tempoNum = seg
+    this.tempoOn = true
+    var total = seg
+    var inicio = Date.now()
+    tempoTimer = setInterval(function () {
+      var passou = (Date.now() - inicio) / 1000
+      var resta = total - passou
+      if (resta <= 0) {
+        pagina.pararTimers(); pagina.tempoOn = false; pagina.concluirSerie()
+      } else {
+        pagina.tempoNum = Math.ceil(resta)
+        pagina.tempoW = Math.round(resta / total * LARGURA)
+      }
+    }, 100)
+  },
+  prontoTempo() { this.pararTimers(); this.tempoOn = false; this.concluirSerie() },
+  cancelarTempo() { this.pararTimers(); this.tempoOn = false },
+
+  // Descanso
+  iniciarDescanso(seg) {
+    var pagina = this
+    this.pararTimers()
+    this.restTotal = seg
+    this.restNum = seg
+    this.restW = LARGURA
+    this.restOn = true
+    restTimer = setInterval(function () {
+      pagina.restNum--
+      pagina.restW = Math.round(pagina.restNum / pagina.restTotal * LARGURA)
+      if (pagina.restNum <= 0) { pagina.pararTimers(); vibrar('long'); pagina.restOn = false }
+    }, 1000)
+  },
+  mais15() {
+    this.restNum += 15
+    this.restTotal += 15
+    this.restW = Math.round(this.restNum / this.restTotal * LARGURA)
+  },
+  pularRest() { this.pararTimers(); this.restOn = false }
+}
+</script>
+
+<style>
+.page { flex-direction: column; align-items: center; background-color: #000000; padding-top: 6px; }
+.sit { height: 22px; font-size: 15px; font-weight: bold; color: #ff7a2e; text-align: center; }
+.nome { width: 176px; height: 46px; font-size: 19px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 2px; }
+.bigrow { flex-direction: row; align-items: flex-end; justify-content: center; margin-top: 4px; }
+.big { font-size: 54px; font-weight: bold; color: #ffffff; }
+.bigden { font-size: 22px; color: #8b9298; font-weight: bold; }
+.alvo { height: 20px; font-size: 14px; color: #8b9298; text-align: center; margin-top: 2px; }
+.dots { flex-direction: row; justify-content: center; margin-top: 10px; margin-bottom: 10px; }
+.dot { width: 13px; height: 13px; border-radius: 7px; background-color: #2a2f34; margin-left: 4px; margin-right: 4px; }
+.dot.f { background-color: #ff7a2e; }
+.check { width: 150px; height: 56px; font-size: 22px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 28px; }
+.check.next { background-color: #2f6f3a; color: #ffffff; }
+.undo { height: 24px; font-size: 13px; color: #8b9298; text-align: center; margin-top: 8px; }
+
+.ovl { position: fixed; left: 0; top: 0; width: 192px; height: 490px; flex-direction: column; align-items: center; justify-content: center; }
+.rest { background-color: #1f2a3a; }
+.tempo { background-color: #2a1f3a; }
+.olab { font-size: 13px; color: #a9c7ff; text-align: center; }
+.tempo .olab { color: #d2b9ff; }
+.onum { font-size: 60px; font-weight: bold; color: #ffffff; text-align: center; }
+.bar { width: 150px; height: 8px; margin-top: 8px; background-color: #0e141c; border-radius: 4px; flex-direction: row; }
+.tempo .bar { background-color: #190e24; }
+.barfill { height: 8px; background-color: #ff7a2e; border-radius: 4px; }
+.obtns { flex-direction: row; margin-top: 14px; }
+.ob { font-size: 14px; border-radius: 20px; padding-left: 18px; padding-right: 18px; padding-top: 10px; padding-bottom: 10px; margin-left: 6px; margin-right: 6px; text-align: center; }
+.ob.sec { background-color: #33415a; color: #ffffff; }
+.ob.pri { background-color: #ff7a2e; color: #180a00; }
+</style>

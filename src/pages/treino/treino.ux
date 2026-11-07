@@ -1,0 +1,189 @@
+<template>
+  <div class="page">
+    <text class="titulo">{{ nome }}</text>
+
+    <list class="lista">
+      <list-item type="t" for="{{ itens }}" class="item {{ $item.feito ? 'feito' : '' }}" onclick="abrir($idx)">
+        <text class="nome">{{ $item.nome }}</text>
+        <text class="prog">{{ $item.prog }}</text>
+      </list-item>
+    </list>
+
+    <div class="foot">
+      <text class="add" show="{{ avulso }}" onclick="abrirPicker">+ Adicionar exercício</text>
+      <text class="finalizar" ontouchstart="holdStart" ontouchend="holdEnd" ontouchcancel="holdEnd">FINALIZAR</text>
+      <div class="bar"><div class="barfill" style="width: {{ holdW }}px"></div></div>
+      <text class="hint">segure para finalizar</text>
+    </div>
+
+    <!-- Concluído -->
+    <div class="concl" show="{{ concluOn }}">
+      <text class="cbig">TREINO</text>
+      <text class="cbig">CONCLUÍDO</text>
+      <text class="csub">{{ concluSub }}</text>
+      <text class="cok" onclick="confirmarOk">OK</text>
+    </div>
+
+    <!-- Picker (avulso) -->
+    <div class="picker" show="{{ pickerOn }}">
+      <text class="pt">{{ tituloPicker }}</text>
+      <div class="chips">
+        <text class="chip {{ tipo === 'reps' ? 'on' : '' }}" onclick="setTipo('reps')">Reps</text>
+        <text class="chip {{ tipo === 'tempo' ? 'on' : '' }}" onclick="setTipo('tempo')">Tempo</text>
+        <text class="chip {{ tipo === 'combo' ? 'on' : '' }}" onclick="setTipo('combo')">Combo</text>
+      </div>
+      <div class="stp" for="{{ linhas }}">
+        <text class="sl">{{ $item.rotulo }}</text>
+        <text class="sbtn" onclick="passo($item.chave, -1)">-</text>
+        <text class="sval">{{ $item.valor }}</text>
+        <text class="sbtn" onclick="passo($item.chave, 1)">+</text>
+      </div>
+      <div class="pbtns">
+        <text class="pb sec" onclick="cancelar">Cancelar</text>
+        <text class="pb pri" onclick="adicionar">Adicionar</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+import brightness from '@system.brightness'
+import { obter, carregar, definir, persistir, limpar } from '../../common/sessao'
+import { metaEx, novaSessao } from '../../common/modelo'
+import { LINHAS, valoresPadrao, ajustar, montarEx } from '../../common/picker'
+
+var HOLD_MS = 1500
+var LARGURA = 176
+var holdTimer = null
+
+export default {
+  private: {
+    nome: '', itens: [], avulso: false,
+    concluOn: false, concluSub: '',
+    holdW: 0,
+    pickerOn: false, tipo: 'reps',
+    vals: { series: 3, reps: 12, seg: 30, a: 20, b: 10 },
+    linhas: [], tituloPicker: 'Exercício 1'
+  },
+  onShow() {
+    try { brightness.setKeepScreenOn({ keepScreenOn: true }) } catch (e) {}
+    var pagina = this
+    var s = obter()
+    if (s) { this.construir(s) } else {
+      carregar(function (carregada) {
+        if (carregada) pagina.construir(carregada)
+        else router.replace({ uri: '/pages/index' })
+      })
+    }
+  },
+  onHide() {
+    try { brightness.setKeepScreenOn({ keepScreenOn: false }) } catch (e) {}
+    this.pararHold()
+  },
+  onDestroy() { this.pararHold() },
+  construir(s) {
+    this.nome = s.nome
+    this.avulso = s.modo === 'avulso'
+    this.itens = s.ex.map(function (e, i) {
+      return { nome: e.nome, prog: s.done[i] + '/' + e.series, feito: s.done[i] >= e.series }
+    })
+  },
+  abrir(i) {
+    router.push({ uri: '/pages/exercicio', params: { idx: String(i) } })
+  },
+
+  // Segurar para finalizar
+  holdStart() {
+    var pagina = this
+    this.pararHold()
+    var inicio = Date.now()
+    holdTimer = setInterval(function () {
+      var p = (Date.now() - inicio) / HOLD_MS
+      if (p >= 1) { pagina.holdW = LARGURA; pagina.pararHold(); pagina.finalizar() }
+      else pagina.holdW = Math.round(p * LARGURA)
+    }, 50)
+  },
+  holdEnd() {
+    this.pararHold()
+    this.holdW = 0
+  },
+  pararHold() {
+    if (holdTimer !== null) { clearInterval(holdTimer); holdTimer = null }
+  },
+  finalizar() {
+    var s = obter()
+    this.concluSub = this.avulso ? 'Treino avulso descartado.' : s.nome + ' concluído.'
+    this.concluOn = true
+  },
+  confirmarOk() {
+    limpar()
+    router.replace({ uri: '/pages/index' })
+  },
+
+  // Picker (adicionar exercício no avulso já iniciado)
+  montarLinhas() {
+    var vals = this.vals
+    this.linhas = LINHAS[this.tipo].map(function (par) {
+      return { chave: par[0], rotulo: par[1], valor: vals[par[0]] }
+    })
+  },
+  abrirPicker() {
+    var s = obter()
+    this.tipo = 'reps'
+    this.vals = valoresPadrao()
+    this.tituloPicker = 'Exercício ' + (s.ex.length + 1)
+    this.montarLinhas()
+    this.pickerOn = true
+  },
+  setTipo(t) { this.tipo = t; this.montarLinhas() },
+  passo(chave, delta) { this.vals[chave] = ajustar(this.vals[chave], chave, delta); this.montarLinhas() },
+  cancelar() { this.pickerOn = false },
+  adicionar() {
+    var s = obter()
+    var ex = montarEx('Exercício ' + (s.ex.length + 1), this.tipo, this.vals)
+    s.ex.push(ex)
+    s.done.push(0)
+    definir(s)
+    persistir()
+    this.pickerOn = false
+    this.construir(s)
+  }
+}
+</script>
+
+<style>
+.page { flex-direction: column; align-items: center; background-color: #000000; padding-top: 8px; }
+.titulo { height: 24px; font-size: 18px; font-weight: bold; color: #ff7a2e; text-align: center; }
+.lista { flex: 1; width: 192px; }
+.item { width: 176px; height: 44px; margin-left: 8px; margin-top: 4px; background-color: #16181a; border-radius: 13px; flex-direction: row; align-items: center; justify-content: space-between; padding-left: 13px; padding-right: 13px; }
+.item.feito { background-color: #12331f; }
+.nome { font-size: 14px; font-weight: bold; color: #ffffff; flex: 1; }
+.prog { font-size: 18px; font-weight: bold; color: #ff7a2e; }
+.item.feito .prog { color: #4caf50; }
+.foot { flex: none; flex-direction: column; align-items: center; padding-bottom: 6px; }
+.add { width: 176px; height: 36px; margin-top: 4px; font-size: 15px; color: #ff7a2e; text-align: center; background-color: #16181a; border-radius: 18px; }
+.finalizar { width: 176px; height: 40px; margin-top: 5px; font-size: 18px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 20px; }
+.bar { width: 176px; height: 6px; margin-top: 4px; background-color: #22262a; border-radius: 3px; flex-direction: row; }
+.barfill { height: 6px; background-color: #ff7a2e; border-radius: 3px; }
+.hint { height: 16px; font-size: 10px; color: #8b9298; text-align: center; }
+
+.concl { position: fixed; left: 0; top: 0; width: 192px; height: 490px; background-color: #0d1f12; flex-direction: column; align-items: center; justify-content: center; }
+.cbig { font-size: 28px; font-weight: bold; color: #58d06a; text-align: center; }
+.csub { font-size: 13px; color: #8b9298; margin-top: 6px; }
+.cok { width: 120px; height: 44px; margin-top: 14px; font-size: 16px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 22px; }
+
+.picker { position: fixed; left: 0; top: 0; width: 192px; height: 490px; background-color: #101317; flex-direction: column; align-items: center; justify-content: center; padding-left: 18px; padding-right: 18px; }
+.pt { height: 28px; font-size: 20px; font-weight: bold; color: #ff7a2e; text-align: center; }
+.chips { flex-direction: row; justify-content: center; margin-bottom: 4px; }
+.chip { font-size: 13px; color: #8b9298; background-color: #16181a; border-radius: 14px; padding-left: 12px; padding-right: 12px; padding-top: 6px; padding-bottom: 6px; margin-left: 3px; margin-right: 3px; }
+.chip.on { background-color: #ff7a2e; color: #180a00; }
+.stp { flex-direction: row; align-items: center; justify-content: center; margin-top: 6px; }
+.sl { font-size: 12px; color: #8b9298; width: 56px; }
+.sbtn { width: 36px; height: 36px; border-radius: 18px; background-color: #16181a; color: #ffffff; font-size: 22px; text-align: center; margin-left: 8px; margin-right: 8px; }
+.sval { width: 42px; font-size: 30px; font-weight: bold; color: #ffffff; text-align: center; }
+.pbtns { flex-direction: row; margin-top: 12px; }
+.pb { font-size: 14px; border-radius: 20px; padding-left: 16px; padding-right: 16px; padding-top: 9px; padding-bottom: 9px; margin-left: 5px; margin-right: 5px; text-align: center; }
+.pb.sec { background-color: #33415a; color: #ffffff; }
+.pb.pri { background-color: #ff7a2e; color: #180a00; }
+</style>

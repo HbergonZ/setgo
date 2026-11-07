@@ -1,0 +1,42 @@
+<template>
+  <div class="page">
+    <text class="titulo">TREINOS SALVOS</text>
+    <list class="lista">
+      <list-item type="t" for="{{ itens }}" class="item" onclick="abrir($idx)">
+        <div class="col">
+          <text class="nome">{{ $item.nome }}</text>
+          <text class="meta">{{ $item.qtd }} exercícios</text>
+        </div>
+        <text class="seta">›</text>
+      </list-item>
+    </list>
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+import { SALVOS, novaSessao } from '../../common/modelo'
+import { definir } from '../../common/sessao'
+
+export default {
+  private: { itens: [] },
+  onInit() {
+    this.itens = SALVOS.map(function (w) { return { nome: w.nome, qtd: w.ex.length } })
+  },
+  abrir(i) {
+    definir(novaSessao(SALVOS[i], 'salvo'))
+    router.push({ uri: '/pages/treino' })
+  }
+}
+</script>
+
+<style>
+.page { flex-direction: column; align-items: center; background-color: #000000; padding-top: 10px; }
+.titulo { height: 26px; font-size: 18px; font-weight: bold; color: #ff7a2e; text-align: center; letter-spacing: .5px; }
+.lista { flex: 1; width: 192px; }
+.item { width: 176px; height: 60px; margin-left: 8px; margin-top: 6px; background-color: #16181a; border-radius: 14px; flex-direction: row; align-items: center; padding-left: 13px; padding-right: 13px; }
+.col { flex: 1; flex-direction: column; }
+.nome { font-size: 16px; font-weight: bold; color: #ffffff; }
+.meta { font-size: 12px; color: #8b9298; }
+.seta { font-size: 22px; color: #ff7a2e; }
+</style>
