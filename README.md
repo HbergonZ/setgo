@@ -38,7 +38,7 @@ npm run deploy    # compila e instala na pulseira (precisa do celular no adb)
 
 ## Observações
 
-- Os textos da interface usam ASCII para compatibilidade com as fontes da pulseira.
+- Os textos da interface usam ASCII por precaução com as fontes da pulseira; veja a verificação de caracteres abaixo.
 - `designWidth` é 192 (tela 336x480 da Band 8 Pro).
 - Instalação pela página de debug do Mi Fitness, mesmo método do Placar Tênis (ver o README daquele projeto). A pulseira mantém o ícone da primeira instalação.
 
@@ -65,3 +65,11 @@ As medidas abaixo usam o `designWidth` de 192 unidades:
 - As listas de exercícios ganharam o espaço liberado pelos botões menores.
 
 A revisão foi conferida com toques no emulador: abrir treino salvo, CHECK, +15s, Pular, desfazer, toque curto e pressão longa em FINALIZAR, OK, treino avulso, tipos Reps/Tempo/Combo, seletores +/−, Adicionar, Cancelar, INICIAR e Cancelar/Pronto na isometria. INICIAR permanece inativo enquanto não há exercícios.
+
+### Acentos, til e cedilha
+
+Um teste com a fonte padrão no emulador local Vela 5 renderizou corretamente `À â ê ô ã õ ç` e `Ação: á é í ó ú`. Portanto, não há uma limitação geral do texto Unicode no app. Esse resultado não confirma a cobertura da fonte do firmware da Smart Band 8 Pro: o emulador usa uma imagem de relógio Vela 5, embora tenha a resolução da pulseira.
+
+O teste temporário substituiu somente os rótulos dos dois botões do menu. O menu normal foi restaurado após a captura. O pacote local `dist/dev.rea.setgo.teste-acentos.0.2.0.rpk` permite repetir a verificação no aparelho; ele usa o mesmo identificador do app e substitui sua instalação. O pacote normal continua em `dist/dev.rea.setgo.debug.0.2.0.rpk`.
+
+Se os caracteres não aparecerem no aparelho, o próximo caminho a avaliar é uma fonte incluída no app. O compilador instalado reconhece `@font-face` e `font-family`, mas o carregamento dessa fonte ainda precisa ser validado no firmware da pulseira. Não é necessário alterar o firmware para o teste de texto.
