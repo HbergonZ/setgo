@@ -1,34 +1,450 @@
 <template>
   <div class="page">
-    <text class="logo">SETGO</text>
-    <text class="mbtn" onclick="irAvulso">Treino avulso</text>
-    <text class="mbtn" onclick="irSalvos">Treinos salvos</text>
-    <text class="cont" show="{{ temSessao }}" onclick="continuar">CONTINUAR TREINO</text>
+
+    <!-- MENU -->
+    <div class="view menu" if="{{ vista === 'menu' }}">
+      <text class="logo">SETGO</text>
+      <text class="mbtn" onclick="irBuilder">Treino avulso</text>
+      <text class="mbtn" onclick="irSalvos">Treinos salvos</text>
+      <text class="cont" if="{{ temSessao }}" onclick="continuar">CONTINUAR TREINO</text>
+    </div>
+
+    <!-- SALVOS -->
+    <div class="view" if="{{ vista === 'salvos' }}">
+      <text class="titulo">TREINOS SALVOS</text>
+      <div class="lista">
+        <div class="row" for="{{ salvosView }}" onclick="abrirSalvo($idx)">
+          <text class="rnome">{{ $item.nome }}</text>
+          <text class="rmeta">{{ $item.qtd }} exerc</text>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUILDER -->
+    <div class="view" if="{{ vista === 'builder' }}">
+      <text class="titulo">MONTAR TREINO</text>
+      <text class="vazio" if="{{ draft.length === 0 }}">Nenhum exercicio. Toque em Adicionar.</text>
+      <list class="lista builder-list" if="{{ draft.length > 0 }}">
+        <list-item type="d" for="{{ draft }}" class="row">
+          <text class="rnome">{{ $item.nome }}</text>
+          <text class="rmeta">{{ $item.rotulo }}</text>
+        </list-item>
+      </list>
+      <text class="add" onclick="abrirPickerBuilder">+ Adicionar exercicio</text>
+      <text class="prim {{ draft.length ? '' : 'off' }}" onclick="iniciarAvulso">INICIAR</text>
+    </div>
+
+    <!-- PICKER -->
+    <div class="view center" if="{{ vista === 'picker' }}">
+      <text class="pt">{{ pickTitulo }}</text>
+      <div class="chips">
+        <text class="chip {{ tipo === 'reps' ? 'on' : '' }}" onclick="setTipo('reps')">Reps</text>
+        <text class="chip {{ tipo === 'tempo' ? 'on' : '' }}" onclick="setTipo('tempo')">Tempo</text>
+        <text class="chip {{ tipo === 'combo' ? 'on' : '' }}" onclick="setTipo('combo')">Combo</text>
+      </div>
+      <div class="stp" for="{{ linhas }}">
+        <text class="sl">{{ $item.rotulo }}</text>
+        <text class="sbtn" onclick="passo($item.chave, -1)">-</text>
+        <text class="sval">{{ $item.valor }}</text>
+        <text class="sbtn" onclick="passo($item.chave, 1)">+</text>
+      </div>
+      <div class="prow">
+        <text class="pb sec" onclick="cancelarPicker">Cancelar</text>
+        <text class="pb pri" onclick="addPicker">Adicionar</text>
+      </div>
+    </div>
+
+    <!-- TREINO -->
+    <div class="view" if="{{ vista === 'treino' }}">
+      <text class="titulo">{{ ativoNome }}</text>
+      <list class="lista {{ ativoAvulso ? 'treino-list-avulso' : 'treino-list' }}">
+        <list-item type="e" for="{{ treinoView }}" class="row {{ $item.feito ? 'feito' : '' }}" onclick="abrirExercicio($idx)">
+          <text class="rnome">{{ $item.nome }}</text>
+          <text class="rprog {{ $item.feito ? 'prog-feito' : '' }}">{{ $item.prog }}</text>
+        </list-item>
+      </list>
+      <text class="add" if="{{ ativoAvulso }}" onclick="abrirPickerTreino">+ Adicionar exercicio</text>
+      <text class="prim" ontouchstart="holdStart" ontouchend="holdEnd" ontouchcancel="holdEnd">FINALIZAR</text>
+      <div class="bar"><div class="barfill" style="width: {{ holdW }}px"></div></div>
+      <text class="hint">segure para finalizar</text>
+    </div>
+
+    <!-- EXERCICIO -->
+    <div class="view" if="{{ vista === 'exercicio' }}">
+      <text class="sit">{{ exSit }}</text>
+      <text class="exnome">{{ exNome }}</text>
+      <div class="bigrow">
+        <text class="big">{{ exBig }}</text>
+        <text class="bigden">{{ exDen }}</text>
+      </div>
+      <text class="alvo">{{ exAlvo }}</text>
+      <div class="dots">
+        <text class="dot {{ $item ? 'f' : '' }}" for="{{ exDots }}"></text>
+      </div>
+      <text class="check {{ exFim ? 'next' : '' }}" onclick="checar">{{ exBotao }}</text>
+      <text class="undo" onclick="desfazer">desfazer</text>
+    </div>
+
+    <!-- DESCANSO -->
+    <div class="view center" if="{{ vista === 'descanso' }}">
+      <text class="olab">Descanso</text>
+      <text class="onum">{{ restNum }}</text>
+      <div class="bar wide"><div class="barfill" style="width: {{ restW }}px"></div></div>
+      <div class="prow">
+        <text class="pb sec" onclick="mais15">+15s</text>
+        <text class="pb pri" onclick="pularRest">Pular</text>
+      </div>
+    </div>
+
+    <!-- TEMPO (isometria) -->
+    <div class="view center" if="{{ vista === 'tempo' }}">
+      <text class="olab roxo">Segure a posicao</text>
+      <text class="onum">{{ tempoNum }}</text>
+      <div class="bar wide roxobar"><div class="barfill" style="width: {{ tempoW }}px"></div></div>
+      <div class="prow">
+        <text class="pb sec" onclick="cancelarTempo">Cancelar</text>
+        <text class="pb pri" onclick="prontoTempo">Pronto</text>
+      </div>
+    </div>
+
+    <!-- CONCLUIDO -->
+    <div class="view center" if="{{ vista === 'concluido' }}">
+      <text class="cbig">TREINO</text>
+      <text class="cbig verde">CONCLUIDO</text>
+      <text class="csub">{{ conclSub }}</text>
+      <text class="prim ok" onclick="voltarMenu">OK</text>
+    </div>
+
   </div>
 </template>
 
 <script>
-import router from '@system.router'
-import { carregar } from '../../common/sessao'
-import { treinoFeito } from '../../common/modelo'
+import storage from '@system.storage'
+import vibrator from '@system.vibrator'
+import brightness from '@system.brightness'
+import { SALVOS, novaSessao, alvoEx, metaEx, treinoFeito } from '../../common/modelo'
+import { LINHAS, valoresPadrao, ajustar, montarEx } from '../../common/picker'
+
+var CHAVE = 'setgo_sessao'
+var LARGURA_HOLD = 182
+var LARGURA_BAR = 150
+var HOLD_MS = 1500
+var holdTimer = null
+var restTimer = null
+var tempoTimer = null
+
+function vibrar(modo) {
+  try { vibrator.vibrate({ mode: modo }) } catch (e) {}
+}
 
 export default {
-  private: { temSessao: false },
-  onShow() {
+  private: {
+    vista: 'menu',
+    temSessao: false,
+    salvosView: [],
+    draft: [],
+    // picker
+    tipo: 'reps',
+    vals: { series: 3, reps: 12, seg: 30, a: 20, b: 10 },
+    linhas: [],
+    pickTitulo: 'Exercicio 1',
+    pickFrom: 'builder',
+    // treino ativo
+    ativo: null,
+    ativoNome: '',
+    ativoAvulso: false,
+    treinoView: [],
+    curEx: 0,
+    // exercicio
+    exSit: '', exNome: '', exBig: '', exDen: '', exAlvo: '', exDots: [], exBotao: 'CHECK', exFim: false,
+    // timers
+    holdW: 0,
+    restNum: 0, restW: 0, restTotal: 30,
+    tempoNum: 0, tempoW: 0,
+    conclSub: ''
+  },
+
+  onInit() {
+    this.salvosView = SALVOS.map(function (w) { return { nome: w.nome, qtd: w.ex.length } })
     var pagina = this
-    carregar(function (s) {
-      pagina.temSessao = !!(s && s.ex && !treinoFeito(s))
+    try {
+      storage.get({
+        key: CHAVE,
+        success: function (txt) {
+          var s = null
+          try { s = txt ? JSON.parse(txt) : null } catch (e) { s = null }
+          if (s && s.ex && s.done && !treinoFeito(s)) { pagina.ativo = s; pagina.temSessao = true }
+        }
+      })
+    } catch (e) {}
+  },
+  onShow() { try { brightness.setKeepScreenOn({ keepScreenOn: true }) } catch (e) {} },
+  onHide() { try { brightness.setKeepScreenOn({ keepScreenOn: false }) } catch (e) {} },
+  onDestroy() { this.pararTimers(); this.pararHold() },
+
+  // Botao voltar: navega dentro do app; no menu, deixa sair.
+  onBackPress() {
+    var v = this.vista
+    if (v === 'menu') return false
+    if (v === 'exercicio') { this.vista = 'treino'; this.montarTreinoView() }
+    else if (v === 'picker') { this.vista = this.pickFrom }
+    else if (v === 'descanso') { this.pularRest() }
+    else if (v === 'tempo') { this.cancelarTempo() }
+    else if (v === 'concluido') { this.voltarMenu() }
+    else { this.vista = 'menu' }
+    return true
+  },
+
+  salvar() { try { storage.set({ key: CHAVE, value: JSON.stringify(this.ativo) }) } catch (e) {} },
+  apagar() { try { storage.delete({ key: CHAVE }) } catch (e) {} },
+
+  // ---- Navegacao ----
+  irBuilder() { this.draft = []; this.vista = 'builder' },
+  irSalvos() { this.vista = 'salvos' },
+  continuar() { this.setAtivo(this.ativo); this.vista = 'treino' },
+
+  abrirSalvo(i) {
+    this.ativo = novaSessao(SALVOS[i], 'salvo')
+    this.salvar(); this.temSessao = true
+    this.setAtivo(this.ativo)
+    this.vista = 'treino'
+  },
+  iniciarAvulso() {
+    if (this.draft.length === 0) return
+    var limpos = this.draft.map(function (e) {
+      var c = {}
+      for (var k in e) if (k !== 'rotulo') c[k] = e[k]
+      return c
+    })
+    this.ativo = novaSessao({ nome: 'Treino avulso', ex: limpos }, 'avulso')
+    this.salvar(); this.temSessao = true
+    this.setAtivo(this.ativo)
+    this.vista = 'treino'
+  },
+  setAtivo(s) {
+    this.ativoNome = s.nome
+    this.ativoAvulso = s.modo === 'avulso'
+    this.montarTreinoView()
+  },
+  montarTreinoView() {
+    var s = this.ativo
+    this.treinoView = s.ex.map(function (e, i) {
+      return { nome: e.nome, prog: s.done[i] + '/' + e.series, feito: s.done[i] >= e.series }
     })
   },
-  irAvulso() { router.push({ uri: '/pages/builder' }) },
-  irSalvos() { router.push({ uri: '/pages/salvos' }) },
-  continuar() { router.push({ uri: '/pages/treino' }) }
+
+  // ---- Picker ----
+  montarLinhas() {
+    var vals = this.vals
+    this.linhas = LINHAS[this.tipo].map(function (par) {
+      return { chave: par[0], rotulo: par[1], valor: vals[par[0]] }
+    })
+  },
+  abrirPicker(origem, qtd) {
+    this.pickFrom = origem
+    this.tipo = 'reps'
+    this.vals = valoresPadrao()
+    this.pickTitulo = 'Exercicio ' + (qtd + 1)
+    this.montarLinhas()
+    this.vista = 'picker'
+  },
+  abrirPickerBuilder() { this.abrirPicker('builder', this.draft.length) },
+  abrirPickerTreino() { this.abrirPicker('treino', this.ativo.ex.length) },
+  setTipo(t) { this.tipo = t; this.montarLinhas() },
+  passo(chave, delta) { this.vals[chave] = ajustar(this.vals[chave], chave, delta); this.montarLinhas() },
+  cancelarPicker() { this.vista = this.pickFrom },
+  addPicker() {
+    if (this.pickFrom === 'builder') {
+      var ex = montarEx('Exercicio ' + (this.draft.length + 1), this.tipo, this.vals)
+      ex.rotulo = metaEx(ex)
+      this.draft = this.draft.concat([ex])
+      this.vista = 'builder'
+    } else {
+      var ex2 = montarEx('Exercicio ' + (this.ativo.ex.length + 1), this.tipo, this.vals)
+      this.ativo.ex.push(ex2)
+      this.ativo.done.push(0)
+      this.salvar()
+      this.montarTreinoView()
+      this.vista = 'treino'
+    }
+  },
+
+  // ---- Exercicio ----
+  abrirExercicio(i) { this.curEx = i; this.renderEx(); this.vista = 'exercicio' },
+  renderEx() {
+    var e = this.ativo.ex[this.curEx]
+    var d = this.ativo.done[this.curEx]
+    this.exNome = e.nome
+    this.exAlvo = alvoEx(e)
+    this.exFim = d >= e.series
+    if (this.exFim) {
+      this.exSit = 'EXERCICIO FEITO'
+      this.exBig = 'OK'; this.exDen = ''
+      this.exBotao = (this.curEx < this.ativo.ex.length - 1) ? 'PROXIMO' : 'VOLTAR'
+    } else {
+      this.exSit = 'SERIE ' + (d + 1) + ' de ' + e.series
+      this.exBig = String(d + 1); this.exDen = '/' + e.series
+      this.exBotao = 'CHECK'
+    }
+    var dots = []
+    for (var k = 0; k < e.series; k++) dots.push(k < d)
+    this.exDots = dots
+  },
+  checar() {
+    var e = this.ativo.ex[this.curEx]
+    if (this.ativo.done[this.curEx] >= e.series) {
+      if (this.curEx < this.ativo.ex.length - 1) { this.curEx++; this.renderEx() }
+      else { this.montarTreinoView(); this.vista = 'treino' }
+      return
+    }
+    if (e.tipo === 'tempo') this.iniciarTempo(e.seg)
+    else this.concluirSerie()
+  },
+  concluirSerie() {
+    var e = this.ativo.ex[this.curEx]
+    this.vista = 'exercicio'
+    this.ativo.done[this.curEx]++
+    this.salvar()
+    this.renderEx()
+    this.montarTreinoView()
+    if (this.ativo.done[this.curEx] < e.series) { vibrar('short'); this.iniciarDescanso(e.descanso) }
+    else { vibrar('long') }
+  },
+  desfazer() {
+    if (this.ativo.done[this.curEx] > 0) { this.ativo.done[this.curEx]--; this.salvar(); this.renderEx(); this.montarTreinoView() }
+  },
+
+  // ---- Isometria ----
+  iniciarTempo(seg) {
+    var pagina = this
+    this.pararTimers()
+    this.tempoNum = seg
+    this.tempoW = LARGURA_BAR
+    this.vista = 'tempo'
+    var total = seg
+    var inicio = Date.now()
+    tempoTimer = setInterval(function () {
+      var resta = total - (Date.now() - inicio) / 1000
+      if (resta <= 0) { pagina.pararTimers(); pagina.concluirSerie() }
+      else { pagina.tempoNum = Math.ceil(resta); pagina.tempoW = Math.round(resta / total * LARGURA_BAR) }
+    }, 100)
+  },
+  prontoTempo() { this.pararTimers(); this.concluirSerie() },
+  cancelarTempo() { this.pararTimers(); this.vista = 'exercicio' },
+
+  // ---- Descanso ----
+  iniciarDescanso(seg) {
+    var pagina = this
+    this.pararTimers()
+    this.restTotal = seg
+    this.restNum = seg
+    this.restW = LARGURA_BAR
+    this.vista = 'descanso'
+    restTimer = setInterval(function () {
+      pagina.restNum--
+      pagina.restW = Math.round(pagina.restNum / pagina.restTotal * LARGURA_BAR)
+      if (pagina.restNum <= 0) { pagina.pararTimers(); vibrar('long'); pagina.vista = 'exercicio' }
+    }, 1000)
+  },
+  mais15() { this.restNum += 15; this.restTotal += 15; this.restW = Math.round(this.restNum / this.restTotal * LARGURA_BAR) },
+  pularRest() { this.pararTimers(); this.vista = 'exercicio' },
+
+  pararTimers() {
+    if (restTimer !== null) { clearInterval(restTimer); restTimer = null }
+    if (tempoTimer !== null) { clearInterval(tempoTimer); tempoTimer = null }
+  },
+
+  // ---- Finalizar (segurar) ----
+  holdStart() {
+    var pagina = this
+    this.pararHold()
+    var inicio = Date.now()
+    holdTimer = setInterval(function () {
+      var p = (Date.now() - inicio) / HOLD_MS
+      if (p >= 1) { pagina.holdW = LARGURA_HOLD; pagina.pararHold(); pagina.finalizar() }
+      else pagina.holdW = Math.round(p * LARGURA_HOLD)
+    }, 50)
+  },
+  holdEnd() { this.pararHold(); this.holdW = 0 },
+  pararHold() { if (holdTimer !== null) { clearInterval(holdTimer); holdTimer = null } },
+  finalizar() {
+    this.conclSub = this.ativoAvulso ? 'Treino avulso descartado.' : this.ativoNome + ' concluido.'
+    this.vista = 'concluido'
+  },
+  voltarMenu() {
+    this.apagar()
+    this.ativo = null
+    this.temSessao = false
+    this.holdW = 0
+    this.vista = 'menu'
+  }
 }
 </script>
 
 <style>
-.page { flex-direction: column; align-items: center; background-color: #000000; padding-top: 16px; padding-left: 10px; padding-right: 10px; }
-.logo { height: 36px; font-size: 26px; font-weight: bold; color: #ff7a2e; text-align: center; letter-spacing: 1px; }
-.mbtn { width: 176px; height: 54px; margin-top: 10px; font-size: 18px; color: #ffffff; text-align: center; background-color: #16181a; border-radius: 16px; }
-.cont { width: 176px; height: 34px; margin-top: 10px; font-size: 15px; color: #ff7a2e; text-align: center; }
+.page { flex: 1; flex-direction: column; background-color: #000000; }
+.view { flex: 1; flex-direction: column; align-items: center; width: 192px; padding-top: 16px; }
+.center { justify-content: center; padding-top: 0; }
+.menu { padding-top: 18px; }
+
+.logo { height: 44px; font-size: 32px; font-weight: bold; color: #ff7a2e; text-align: center; letter-spacing: 1px; }
+.mbtn { width: 182px; height: 62px; margin-top: 12px; font-size: 24px; font-weight: bold; color: #ffffff; text-align: center; background-color: #16181a; border-radius: 18px; }
+.cont { width: 182px; height: 32px; margin-top: 8px; font-size: 16px; color: #ff7a2e; text-align: center; }
+
+.titulo { height: 30px; font-size: 19px; font-weight: bold; color: #ff7a2e; text-align: center; }
+.lista { height: 210px; width: 192px; flex-direction: column; }
+.row { height: 58px; width: 182px; margin-left: 5px; margin-top: 5px; background-color: #16181a; border-radius: 14px; flex-direction: row; align-items: center; justify-content: space-between; padding-left: 14px; padding-right: 14px; padding-top: 7px; padding-bottom: 7px; }
+.feito { background-color: #12331f; }
+.rnome { lines: 2; line-height: 20px; text-overflow: ellipsis; font-size: 16px; font-weight: bold; color: #ffffff; flex: 1; }
+.rmeta { font-size: 15px; color: #8b9298; }
+.rprog { font-size: 23px; font-weight: bold; color: #ff7a2e; }
+.prog-feito { color: #4caf50; }
+.vazio { width: 172px; font-size: 17px; color: #8b9298; text-align: center; margin-top: 18px; }
+
+.add { width: 182px; height: 44px; margin-top: 6px; font-size: 16px; color: #ff7a2e; text-align: center; background-color: #16181a; border-radius: 22px; }
+.prim { width: 182px; height: 50px; margin-top: 6px; font-size: 23px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 25px; }
+.off { background-color: #22262a; color: #8b9298; }
+.ok { width: 130px; margin-top: 16px; }
+.bar { width: 182px; height: 8px; margin-top: 5px; background-color: #22262a; border-radius: 4px; flex-direction: row; }
+.wide { width: 150px; }
+.roxobar { background-color: #190e24; }
+.barfill { height: 8px; background-color: #ff7a2e; border-radius: 4px; }
+.hint { height: 18px; font-size: 13px; color: #8b9298; text-align: center; margin-top: 2px; }
+
+.sit { height: 20px; font-size: 17px; font-weight: bold; color: #ff7a2e; text-align: center; }
+.exnome { lines: 2; line-height: 21px; text-overflow: ellipsis; width: 184px; height: 44px; font-size: 18px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 2px; }
+.bigrow { flex-direction: row; align-items: flex-end; justify-content: center; margin-top: 4px; }
+.big { font-size: 44px; font-weight: bold; color: #ffffff; }
+.bigden { font-size: 24px; color: #8b9298; font-weight: bold; }
+.alvo { height: 20px; font-size: 17px; color: #8b9298; text-align: center; margin-top: 2px; }
+.dots { flex-direction: row; justify-content: center; margin-top: 7px; margin-bottom: 7px; }
+.dot { width: 15px; height: 15px; border-radius: 8px; background-color: #2a2f34; margin-left: 4px; margin-right: 4px; }
+.f { background-color: #ff7a2e; }
+.check { width: 164px; height: 46px; font-size: 26px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 30px; }
+.next { background-color: #2f6f3a; color: #ffffff; }
+.undo { height: 22px; font-size: 15px; color: #8b9298; text-align: center; margin-top: 4px; }
+
+.olab { font-size: 17px; color: #a9c7ff; text-align: center; }
+.roxo { color: #d2b9ff; }
+.onum { font-size: 62px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 4px; }
+
+.pt { height: 30px; font-size: 22px; font-weight: bold; color: #ff7a2e; text-align: center; }
+.chips { flex-direction: row; justify-content: center; margin-bottom: 6px; }
+.chip { font-size: 14px; color: #8b9298; background-color: #16181a; border-radius: 15px; padding-left: 8px; padding-right: 8px; padding-top: 7px; padding-bottom: 7px; margin-left: 3px; margin-right: 3px; }
+.on { background-color: #ff7a2e; color: #180a00; }
+.stp { flex-direction: row; align-items: center; justify-content: center; margin-top: 8px; }
+.sl { font-size: 15px; color: #8b9298; width: 52px; }
+.sbtn { width: 32px; height: 32px; border-radius: 16px; background-color: #16181a; color: #ffffff; font-size: 28px; text-align: center; margin-left: 4px; margin-right: 4px; }
+.sval { width: 36px; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center; }
+.prow { flex-direction: row; margin-top: 16px; }
+.pb { width: 86px; font-size: 14px; border-radius: 22px; padding-left: 0; padding-right: 0; padding-top: 11px; padding-bottom: 11px; margin-left: 4px; margin-right: 4px; text-align: center; }
+.sec { background-color: #33415a; color: #ffffff; }
+.pri { background-color: #ff7a2e; color: #180a00; }
+
+.cbig { font-size: 28px; font-weight: bold; color: #ffffff; text-align: center; }
+.verde { color: #58d06a; }
+.csub { font-size: 16px; color: #8b9298; text-align: center; margin-top: 8px; }
+.builder-list { height: 116px; }
+.treino-list { height: 126px; }
+.treino-list-avulso { height: 76px; }
 </style>

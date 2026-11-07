@@ -20,13 +20,9 @@ Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um 
 |---|---|
 | `src/common/modelo.js` | Treinos salvos e funções puras (meta, alvo, sessão). Testável no Node. |
 | `src/common/picker.js` | Lógica do seletor (tipos, limites, montar exercício). Testável no Node. |
-| `src/common/sessao.js` | Sessão em andamento (memória + storage). |
-| `src/pages/index` | Menu. |
-| `src/pages/salvos` | Lista dos treinos salvos. |
-| `src/pages/builder` | Montagem do treino avulso. |
-| `src/pages/treino` | Lista de exercícios do treino em andamento + finalizar. |
-| `src/pages/exercicio` | Contador de séries, descanso e tempo. |
+| `src/pages/index/index.ux` | Todas as telas, navegação interna, sessão no storage, descanso e isometria. |
 | `tests/modelo.test.mjs` | Testes das funções puras. |
+| `tests/fluxo.test.mjs` | Testes dos métodos da página com storage e relógio simulados. |
 | `tools/deploy.mjs` | Compila e instala na pulseira (página de debug do Mi Fitness). |
 | `tools/gerar-icone.mjs` | Gera `src/common/icon.png`. |
 
@@ -34,13 +30,26 @@ Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um 
 
 ```bash
 npm install
-npm test          # testes das funções puras
+npm test          # testes das funções puras e dos fluxos de treino
+npm start         # emulador oficial Vela, com recompilação ao salvar
 npm run build     # gera dist/dev.rea.setgo.debug.<versão>.rpk
 npm run deploy    # compila e instala na pulseira (precisa do celular no adb)
 ```
 
 ## Observações
 
-- Os textos usam acento/til/cedilha. Se a fonte do Quick App não renderizar algum, dá para trocar por ASCII (como foi preciso no Placar Tênis).
+- Os textos da interface usam ASCII para compatibilidade com as fontes da pulseira.
 - `designWidth` é 192 (tela 336x480 da Band 8 Pro).
 - Instalação pela página de debug do Mi Fitness, mesmo método do Placar Tênis (ver o README daquele projeto). A pulseira mantém o ícone da primeira instalação.
+
+## Validação no emulador
+
+O dispositivo virtual local `Vela_Virtual_Device` usa a resolução 336x480. Mantenha apenas uma instância de `aiot start` por projeto: processos concorrentes disputam os arquivos temporários e a instalação. Espere o primeiro menu aparecer; o runtime pode demorar cerca de dez segundos após iniciar o app.
+
+Se o recarregamento ficar preso após parar o app, encerre a sessão de desenvolvimento e o emulador, e inicie novamente. Esse problema também ocorreu com a compilação válida durante os testes locais.
+
+As telas usam classes CSS simples para evitar que os estilos de estados se misturem no runtime. As listas e suas linhas têm altura explícita, conforme a [documentação do Vela](https://iot.mi.com/vela/quickapp/en/components/container/list.html). O seletor e os botões cabem na largura de 192 unidades do projeto.
+
+Para voltar, deslize da borda esquerda para a direita. Para finalizar um treino, mantenha FINALIZAR pressionado por 1,5 segundo e toque em OK.
+
+Os testes automatizados cobrem treino salvo, descanso, desfazer, retomada pelo storage, conclusão da isometria e confirmação ao segurar. A vibração e o comportamento na Band 8 Pro ainda precisam de validação no aparelho físico.

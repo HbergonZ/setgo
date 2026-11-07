@@ -1,8 +1,8 @@
 {
   "package": "dev.rea.setgo",
   "name": "SetGo",
-  "versionName": "0.1.0",
-  "versionCode": 1,
+  "versionName": "0.2.0",
+  "versionCode": 4,
   "minPlatformVersion": 1000,
   "minAPILevel": 1,
   "icon": "/common/icon.png",
@@ -18,11 +18,7 @@
   "router": {
     "entry": "pages/index",
     "pages": {
-      "pages/index": { "component": "index" },
-      "pages/salvos": { "component": "salvos" },
-      "pages/builder": { "component": "builder" },
-      "pages/treino": { "component": "treino" },
-      "pages/exercicio": { "component": "exercicio" }
+      "pages/index": { "component": "index" }
     }
   }
 }
