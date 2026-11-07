@@ -14,8 +14,8 @@
       <text class="titulo">TREINOS SALVOS</text>
       <div class="lista">
         <div class="row" for="{{ salvosView }}" onclick="abrirSalvo($idx)">
-          <text class="rnome">{{ $item.nome }}</text>
-          <text class="rmeta">{{ $item.qtd }} exerc</text>
+          <text class="saved-name">{{ $item.nome }}</text>
+          <text class="saved-count">{{ $item.qtd }} exerc</text>
         </div>
       </div>
     </div>
@@ -84,7 +84,7 @@
         <text class="dot {{ $item ? 'f' : '' }}" for="{{ exDots }}"></text>
       </div>
       <text class="check {{ exFim ? 'next' : '' }}" onclick="checar">{{ exBotao }}</text>
-      <text class="undo" onclick="desfazer">desfazer</text>
+      <text class="undo" onclick="desfazer">DESFAZER</text>
     </div>
 
     <!-- DESCANSO -->
@@ -282,7 +282,7 @@ export default {
     if (this.exFim) {
       this.exSit = 'EXERCICIO FEITO'
       this.exBig = 'OK'; this.exDen = ''
-      this.exBotao = (this.curEx < this.ativo.ex.length - 1) ? 'PROXIMO' : 'VOLTAR'
+      this.exBotao = 'VOLTAR'
     } else {
       this.exSit = 'SERIE ' + (d + 1) + ' de ' + e.series
       this.exBig = String(d + 1); this.exDen = '/' + e.series
@@ -295,8 +295,7 @@ export default {
   checar() {
     var e = this.ativo.ex[this.curEx]
     if (this.ativo.done[this.curEx] >= e.series) {
-      if (this.curEx < this.ativo.ex.length - 1) { this.curEx++; this.renderEx() }
-      else { this.montarTreinoView(); this.vista = 'treino' }
+      this.montarTreinoView(); this.vista = 'treino'
       return
     }
     if (e.tipo === 'tempo') this.iniciarTempo(e.seg)
@@ -310,7 +309,7 @@ export default {
     this.renderEx()
     this.montarTreinoView()
     if (this.ativo.done[this.curEx] < e.series) { vibrar('short'); this.iniciarDescanso(e.descanso) }
-    else { vibrar('long') }
+    else { vibrar('long'); this.vista = 'treino' }
   },
   desfazer() {
     if (this.ativo.done[this.curEx] > 0) { this.ativo.done[this.curEx]--; this.salvar(); this.renderEx(); this.montarTreinoView() }
@@ -425,7 +424,7 @@ export default {
 .f { background-color: #ff7a2e; }
 .check { width: 144px; height: 38px; font-size: 20px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 19px; }
 .next { background-color: #2f6f3a; color: #ffffff; }
-.undo { height: 22px; font-size: 15px; color: #8b9298; text-align: center; margin-top: 4px; }
+.undo { width: 130px; height: 32px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #33415a; border-radius: 16px; text-align: center; margin-top: 6px; }
 
 .olab { font-size: 17px; color: #a9c7ff; text-align: center; }
 .roxo { color: #d2b9ff; }
@@ -435,10 +434,10 @@ export default {
 .chips { flex-direction: row; justify-content: center; margin-bottom: 6px; }
 .chip { font-size: 14px; font-weight: bold; color: #8b9298; background-color: #16181a; border-radius: 15px; padding-left: 6px; padding-right: 6px; padding-top: 7px; padding-bottom: 7px; margin-left: 2px; margin-right: 2px; }
 .on { background-color: #ff7a2e; color: #180a00; }
-.stp { flex-direction: row; align-items: center; justify-content: center; margin-top: 8px; }
-.sl { font-size: 16px; font-weight: bold; color: #8b9298; width: 52px; }
-.sbtn { width: 32px; height: 32px; border-radius: 16px; background-color: #16181a; color: #ffffff; font-size: 23px; text-align: center; margin-left: 4px; margin-right: 4px; }
-.sval { width: 36px; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center; }
+.stp { width: 182px; height: 40px; flex-direction: row; align-items: center; justify-content: center; margin-top: 8px; }
+.sl { width: 50px; lines: 1; font-size: 14px; font-weight: bold; color: #8b9298; }
+.sbtn { width: 30px; height: 32px; lines: 1; border-radius: 16px; background-color: #16181a; color: #ffffff; font-size: 20px; font-weight: bold; text-align: center; margin-left: 3px; margin-right: 3px; }
+.sval { width: 56px; height: 36px; lines: 1; font-size: 22px; font-weight: bold; color: #ffffff; text-align: center; }
 .prow { flex-direction: row; margin-top: 16px; }
 .pb { width: 86px; height: 34px; font-size: 14px; font-weight: bold; border-radius: 22px; padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0; margin-left: 4px; margin-right: 4px; text-align: center; }
 .sec { background-color: #33415a; color: #ffffff; }
@@ -453,4 +452,6 @@ export default {
 .finish { width: 154px; height: 32px; margin-top: 6px; font-size: 16px; font-weight: bold; color: #ff7a2e; text-align: center; background-color: #24201c; border-radius: 16px; }
 .holdbar { width: 154px; height: 4px; margin-top: 5px; background-color: #22262a; border-radius: 2px; flex-direction: row; }
 .holdfill { height: 4px; background-color: #ff7a2e; border-radius: 2px; }
+.saved-name { width: 96px; lines: 2; line-height: 20px; text-overflow: ellipsis; font-size: 16px; font-weight: bold; color: #ffffff; }
+.saved-count { width: 44px; margin-left: 14px; lines: 1; font-size: 12px; color: #8b9298; text-align: right; }
 </style>

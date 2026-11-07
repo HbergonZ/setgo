@@ -6,9 +6,10 @@ Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um 
 
 - **Menu:** `Treino avulso` (monta na hora, não salva) ou `Treinos salvos` (os 3 treinos fixos).
 - **Treino avulso:** adiciona exercícios escolhendo o tipo — `Reps`, `Tempo` (isometria em segundos) ou `Combo` (dois movimentos por série) — e os valores. Viram "Exercício 1", "Exercício 2"... Dá para adicionar mais com o treino já iniciado. Ao finalizar, é descartado.
-- **Tela do exercício:** nome, série atual (`SÉRIE 2 de 4`), alvo (`12 reps`, `30 seg` ou `20 + 10 reps`), bolinhas de progresso e botão `CHECK`. `desfazer` volta uma série.
+- **Tela do exercício:** nome, série atual (`SERIE 2 de 4`), alvo (`12 reps`, `30 seg` ou `20 + 10 reps`), bolinhas de progresso e botão `CHECK`. O botão azul `DESFAZER` volta uma série.
 - **Reps/Combo:** um `CHECK` fecha a série.
 - **Tempo (isometria):** o `CHECK` inicia a contagem dos segundos e marca a série sozinho ao zerar (ou `Pronto` para marcar antes).
+- **Exercício concluído:** a última série retorna diretamente à lista, sem abrir o próximo exercício. É possível reabrir o exercício concluído para desfazer uma série; seu botão principal mostra `VOLTAR`.
 - **Descanso:** 30s por padrão entre as séries, com `+15s` e `Pular`, vibrando ao zerar.
 - **Finalizar:** segure o botão `FINALIZAR` até a barra encher, para confirmar.
 - O treino em andamento fica salvo (`@system.storage`); ao reabrir o app aparece `CONTINUAR TREINO`.
@@ -78,3 +79,14 @@ A versão 0.2.3 (código 7) remove os arquivos TTF e as declarações de fonte p
 O pacote atual é `dist/dev.rea.setgo.debug.0.2.3.rpk`. No Mi Fitness, selecione `dev_rea_setgo.rpk` da pasta `Xiaomi-band` após o deploy. Feche e reabra o SetGo para conferir a montagem vazia, o seletor, a lista e a retomada de sessão. A proporção final dos textos deve ser validada na pulseira; não há alteração de firmware.
 
 A 0.2.3 passou nos 12 testes, compilou e foi enviada pelo Mi Fitness, que retornou `发送文件成功`. O emulador mostrou a mensagem vazia em três linhas e o botão Adicionar ampliado; a confirmação das proporções na pulseira permanece pendente.
+
+### Ajustes da versão 0.2.4
+
+- Os cartões de treinos salvos reservam larguras próprias para nome e quantidade, separadas por 14 unidades, para não depender do espaçamento flexível do firmware.
+- O seletor reserva 56 unidades para o valor, usa fonte 22 e uma única linha. Os botões +/− têm fonte em negrito, e as linhas mantêm altura fixa, inclusive para valores de três dígitos como 180 segundos.
+- DESFAZER é um botão azul de 130×32 com texto 16 em negrito. FINALIZAR e CHECK mantêm suas medidas.
+- A última série retorna automaticamente à lista em Reps, Combo e Tempo. Um exercício já concluído continua acessível para desfazer; VOLTAR abre a lista.
+
+O pacote é `dist/dev.rea.setgo.debug.0.2.4.rpk` (código 8). Os 13 testes cobrem o novo retorno à lista, persistência do progresso, desfazer após reabrir e os fluxos de isometria. A proporção dos controles ainda deve ser conferida na pulseira após o envio.
+
+O emulador confirmou o seletor Reps/Combo sem quebra dos valores, o novo botão DESFAZER e o retorno automático à lista ao marcar a última série. Os toques em +/− e DESFAZER também foram conferidos. O Mi Fitness confirmou o envio da 0.2.4 com `发送文件成功`.

@@ -68,13 +68,13 @@ test('treino salvo: abrir, marcar, pular descanso e desfazer', () => {
   assert.equal(p.ativo.done[0], 0)
 })
 
-test('ultima serie de isometria sai do cronometro ao zerar', () => {
+test('ultima serie de isometria volta para a lista ao zerar', () => {
   const { pagina: p, passar, timers } = abrir()
   avulso(p, 'tempo', 1)
   p.checar()
   assert.equal(p.vista, 'tempo')
   passar(10000)
-  assert.equal(p.vista, 'exercicio')
+  assert.equal(p.vista, 'treino')
   assert.equal(p.exFim, true)
   assert.equal(p.ativo.done[0], 1)
   assert.equal(timers.size, 0)
@@ -89,7 +89,7 @@ test('Pronto encerra isometria e inicia descanso entre series', () => {
   p.pularRest()
   p.checar()
   p.prontoTempo()
-  assert.equal(p.vista, 'exercicio')
+  assert.equal(p.vista, 'treino')
   assert.equal(p.exFim, true)
 })
 
@@ -132,4 +132,28 @@ test('retomar sessao das versoes acentuadas mostra nomes legiveis sem perder pro
   p.abrirExercicio(0)
   assert.equal(p.exNome, 'Elevacao de bracos')
   assert.equal(p.ativo.done[0], 1)
+})
+
+test('reps e combo voltam para a lista sem avancar ao proximo exercicio', () => {
+  for (const tipo of ['reps', 'combo']) {
+    const { pagina: p, dados, timers } = abrir()
+    avulso(p, tipo, 1)
+    p.abrirPickerTreino()
+    p.addPicker()
+    p.abrirExercicio(0)
+    p.checar()
+    assert.equal(p.vista, 'treino')
+    assert.equal(p.curEx, 0)
+    assert.equal(p.ativo.done[0], 1)
+    assert.equal(p.ativo.done[1], 0)
+    assert.equal(p.treinoView[0].feito, true)
+    assert.equal(JSON.parse(dados.setgo_sessao).done[0], 1)
+    assert.equal(timers.size, 0)
+    p.abrirExercicio(0)
+    assert.equal(p.exBotao, 'VOLTAR')
+    p.desfazer()
+    assert.equal(p.ativo.done[0], 0)
+    assert.equal(p.exFim, false)
+    assert.equal(p.exBotao, 'CHECK')
+  }
 })
