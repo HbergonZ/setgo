@@ -23,14 +23,16 @@
     <!-- BUILDER -->
     <div class="view" if="{{ vista === 'builder' }}">
       <text class="titulo">MONTAR TREINO</text>
-      <text class="vazio" if="{{ draft.length === 0 }}">Nenhum exercício. Toque em Adicionar.</text>
+      <div class="builder-empty" if="{{ draft.length === 0 }}">
+        <text class="vazio">Nenhum exercicio. Toque em Adicionar.</text>
+      </div>
       <list class="lista builder-list" if="{{ draft.length > 0 }}">
         <list-item type="d" for="{{ draft }}" class="row">
           <text class="rnome">{{ $item.nome }}</text>
           <text class="rmeta">{{ $item.rotulo }}</text>
         </list-item>
       </list>
-      <text class="add" onclick="abrirPickerBuilder">+ Adicionar exercício</text>
+      <text class="add" onclick="abrirPickerBuilder">+ Adicionar</text>
       <text class="prim {{ draft.length ? '' : 'off' }}" onclick="iniciarAvulso">INICIAR</text>
     </div>
 
@@ -63,7 +65,7 @@
           <text class="rprog {{ $item.feito ? 'prog-feito' : '' }}">{{ $item.prog }}</text>
         </list-item>
       </list>
-      <text class="add" if="{{ ativoAvulso }}" onclick="abrirPickerTreino">+ Adicionar exercício</text>
+      <text class="add" if="{{ ativoAvulso }}" onclick="abrirPickerTreino">+ Adicionar</text>
       <text class="finish" ontouchstart="holdStart" ontouchend="holdEnd" ontouchcancel="holdEnd">FINALIZAR</text>
       <div class="holdbar"><div class="holdfill" style="width: {{ holdW }}px"></div></div>
       <text class="hint">segure para finalizar</text>
@@ -98,7 +100,7 @@
 
     <!-- TEMPO (isometria) -->
     <div class="view center" if="{{ vista === 'tempo' }}">
-      <text class="olab roxo">Segure a posição</text>
+      <text class="olab roxo">Segure a posicao</text>
       <text class="onum">{{ tempoNum }}</text>
       <div class="bar wide roxobar"><div class="barfill" style="width: {{ tempoW }}px"></div></div>
       <div class="prow">
@@ -110,7 +112,7 @@
     <!-- CONCLUIDO -->
     <div class="view center" if="{{ vista === 'concluido' }}">
       <text class="cbig">TREINO</text>
-      <text class="cbig verde">CONCLUÍDO</text>
+      <text class="cbig verde">CONCLUIDO</text>
       <text class="csub">{{ conclSub }}</text>
       <text class="prim ok" onclick="voltarMenu">OK</text>
     </div>
@@ -122,7 +124,7 @@
 import storage from '@system.storage'
 import vibrator from '@system.vibrator'
 import brightness from '@system.brightness'
-import { SALVOS, novaSessao, alvoEx, metaEx, treinoFeito } from '../../common/modelo'
+import { SALVOS, novaSessao, alvoEx, metaEx, treinoFeito, nomeCompativel } from '../../common/modelo'
 import { LINHAS, valoresPadrao, ajustar, montarEx } from '../../common/picker'
 
 var CHAVE = 'setgo_sessao'
@@ -147,7 +149,7 @@ export default {
     tipo: 'reps',
     vals: { series: 3, reps: 12, seg: 30, a: 20, b: 10 },
     linhas: [],
-    pickTitulo: 'Exercício 1',
+    pickTitulo: 'Exercicio 1',
     pickFrom: 'builder',
     // treino ativo
     ativo: null,
@@ -222,14 +224,14 @@ export default {
     this.vista = 'treino'
   },
   setAtivo(s) {
-    this.ativoNome = s.nome
+    this.ativoNome = nomeCompativel(s.nome)
     this.ativoAvulso = s.modo === 'avulso'
     this.montarTreinoView()
   },
   montarTreinoView() {
     var s = this.ativo
     this.treinoView = s.ex.map(function (e, i) {
-      return { nome: e.nome, prog: s.done[i] + '/' + e.series, feito: s.done[i] >= e.series }
+      return { nome: nomeCompativel(e.nome), prog: s.done[i] + '/' + e.series, feito: s.done[i] >= e.series }
     })
   },
 
@@ -244,7 +246,7 @@ export default {
     this.pickFrom = origem
     this.tipo = 'reps'
     this.vals = valoresPadrao()
-    this.pickTitulo = 'Exercício ' + (qtd + 1)
+    this.pickTitulo = 'Exercicio ' + (qtd + 1)
     this.montarLinhas()
     this.vista = 'picker'
   },
@@ -255,12 +257,12 @@ export default {
   cancelarPicker() { this.vista = this.pickFrom },
   addPicker() {
     if (this.pickFrom === 'builder') {
-      var ex = montarEx('Exercício ' + (this.draft.length + 1), this.tipo, this.vals)
+      var ex = montarEx('Exercicio ' + (this.draft.length + 1), this.tipo, this.vals)
       ex.rotulo = metaEx(ex)
       this.draft = this.draft.concat([ex])
       this.vista = 'builder'
     } else {
-      var ex2 = montarEx('Exercício ' + (this.ativo.ex.length + 1), this.tipo, this.vals)
+      var ex2 = montarEx('Exercicio ' + (this.ativo.ex.length + 1), this.tipo, this.vals)
       this.ativo.ex.push(ex2)
       this.ativo.done.push(0)
       this.salvar()
@@ -274,15 +276,15 @@ export default {
   renderEx() {
     var e = this.ativo.ex[this.curEx]
     var d = this.ativo.done[this.curEx]
-    this.exNome = e.nome
+    this.exNome = nomeCompativel(e.nome)
     this.exAlvo = alvoEx(e)
     this.exFim = d >= e.series
     if (this.exFim) {
-      this.exSit = 'EXERCÍCIO FEITO'
+      this.exSit = 'EXERCICIO FEITO'
       this.exBig = 'OK'; this.exDen = ''
-      this.exBotao = (this.curEx < this.ativo.ex.length - 1) ? 'PRÓXIMO' : 'VOLTAR'
+      this.exBotao = (this.curEx < this.ativo.ex.length - 1) ? 'PROXIMO' : 'VOLTAR'
     } else {
-      this.exSit = 'SÉRIE ' + (d + 1) + ' de ' + e.series
+      this.exSit = 'SERIE ' + (d + 1) + ' de ' + e.series
       this.exBig = String(d + 1); this.exDen = '/' + e.series
       this.exBotao = 'CHECK'
     }
@@ -368,7 +370,7 @@ export default {
   holdEnd() { this.pararHold(); this.holdW = 0 },
   pararHold() { if (holdTimer !== null) { clearInterval(holdTimer); holdTimer = null } },
   finalizar() {
-    this.conclSub = this.ativoAvulso ? 'Treino avulso descartado.' : this.ativoNome + ' concluído.'
+    this.conclSub = this.ativoAvulso ? 'Treino avulso descartado.' : this.ativoNome + ' concluido.'
     this.vista = 'concluido'
   },
   voltarMenu() {
@@ -382,30 +384,28 @@ export default {
 </script>
 
 <style>
-@font-face { font-family: SetGoRegular; src: url("/common/fonts/Roboto-Regular.ttf"); }
-@font-face { font-family: SetGoBold; src: url("/common/fonts/Roboto-Bold.ttf"); }
-text { font-family: SetGoRegular; }
 .page { flex: 1; flex-direction: column; background-color: #000000; }
 .view { flex: 1; flex-direction: column; align-items: center; width: 192px; padding-top: 16px; }
 .center { justify-content: center; padding-top: 0; }
 .menu { padding-top: 18px; }
 
-.logo { height: 44px; font-size: 32px; font-weight: bold; font-family: SetGoBold; color: #ff7a2e; text-align: center; letter-spacing: 1px; }
-.mbtn { width: 172px; height: 48px; margin-top: 12px; font-size: 20px; font-weight: bold; font-family: SetGoBold; color: #ffffff; text-align: center; background-color: #16181a; border-radius: 18px; }
+.logo { height: 44px; font-size: 32px; font-weight: bold; color: #ff7a2e; text-align: center; letter-spacing: 1px; }
+.mbtn { width: 172px; height: 48px; margin-top: 12px; font-size: 20px; font-weight: bold; color: #ffffff; text-align: center; background-color: #16181a; border-radius: 18px; }
 .cont { width: 182px; height: 32px; margin-top: 8px; font-size: 16px; color: #ff7a2e; text-align: center; }
 
-.titulo { height: 30px; font-size: 19px; font-weight: bold; font-family: SetGoBold; color: #ff7a2e; text-align: center; }
+.titulo { height: 30px; font-size: 19px; font-weight: bold; color: #ff7a2e; text-align: center; }
 .lista { height: 210px; width: 192px; flex-direction: column; }
 .row { height: 58px; width: 182px; margin-left: 5px; margin-top: 5px; background-color: #16181a; border-radius: 14px; flex-direction: row; align-items: center; justify-content: space-between; padding-left: 14px; padding-right: 14px; padding-top: 7px; padding-bottom: 7px; }
 .feito { background-color: #12331f; }
-.rnome { lines: 2; line-height: 20px; text-overflow: ellipsis; font-size: 16px; font-weight: bold; font-family: SetGoBold; color: #ffffff; flex: 1; }
+.rnome { lines: 2; line-height: 20px; text-overflow: ellipsis; font-size: 16px; font-weight: bold; color: #ffffff; flex: 1; }
 .rmeta { font-size: 15px; color: #8b9298; }
-.rprog { font-size: 20px; font-weight: bold; font-family: SetGoBold; color: #ff7a2e; }
+.rprog { font-size: 20px; font-weight: bold; color: #ff7a2e; }
 .prog-feito { color: #4caf50; }
-.vazio { width: 172px; font-size: 17px; color: #8b9298; text-align: center; margin-top: 18px; }
+.vazio { width: 164px; height: 72px; lines: 3; line-height: 24px; font-size: 18px; font-weight: bold; color: #b9bec3; text-align: center; }
+.builder-empty { width: 192px; height: 136px; flex-direction: column; justify-content: center; align-items: center; }
 
-.add { width: 172px; height: 34px; margin-top: 6px; font-size: 14px; color: #ff7a2e; text-align: center; background-color: #16181a; border-radius: 22px; }
-.prim { width: 154px; height: 36px; margin-top: 6px; font-size: 18px; font-weight: bold; font-family: SetGoBold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 18px; }
+.add { width: 172px; height: 38px; margin-top: 6px; font-size: 18px; font-weight: bold; color: #ff7a2e; text-align: center; background-color: #16181a; border-radius: 22px; }
+.prim { width: 154px; height: 36px; margin-top: 6px; font-size: 18px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 18px; }
 .off { background-color: #22262a; color: #8b9298; }
 .ok { width: 130px; margin-top: 16px; }
 .bar { width: 182px; height: 8px; margin-top: 5px; background-color: #22262a; border-radius: 4px; flex-direction: row; }
@@ -414,43 +414,43 @@ text { font-family: SetGoRegular; }
 .barfill { height: 8px; background-color: #ff7a2e; border-radius: 4px; }
 .hint { height: 18px; font-size: 13px; color: #8b9298; text-align: center; margin-top: 2px; }
 
-.sit { height: 20px; font-size: 17px; font-weight: bold; font-family: SetGoBold; color: #ff7a2e; text-align: center; }
-.exnome { lines: 2; line-height: 21px; text-overflow: ellipsis; width: 184px; height: 44px; font-size: 18px; font-weight: bold; font-family: SetGoBold; color: #ffffff; text-align: center; margin-top: 2px; }
+.sit { height: 20px; font-size: 17px; font-weight: bold; color: #ff7a2e; text-align: center; }
+.exnome { lines: 2; line-height: 21px; text-overflow: ellipsis; width: 184px; height: 44px; font-size: 18px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 2px; }
 .bigrow { flex-direction: row; align-items: flex-end; justify-content: center; margin-top: 4px; }
-.big { font-size: 44px; font-weight: bold; font-family: SetGoBold; color: #ffffff; }
-.bigden { font-size: 24px; color: #8b9298; font-weight: bold; font-family: SetGoBold; }
+.big { font-size: 44px; font-weight: bold; color: #ffffff; }
+.bigden { font-size: 24px; color: #8b9298; font-weight: bold; }
 .alvo { height: 20px; font-size: 17px; color: #8b9298; text-align: center; margin-top: 2px; }
 .dots { flex-direction: row; justify-content: center; margin-top: 7px; margin-bottom: 7px; }
 .dot { width: 10px; height: 10px; border-radius: 5px; background-color: #2a2f34; margin-left: 4px; margin-right: 4px; }
 .f { background-color: #ff7a2e; }
-.check { width: 144px; height: 38px; font-size: 20px; font-weight: bold; font-family: SetGoBold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 19px; }
+.check { width: 144px; height: 38px; font-size: 20px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 19px; }
 .next { background-color: #2f6f3a; color: #ffffff; }
 .undo { height: 22px; font-size: 15px; color: #8b9298; text-align: center; margin-top: 4px; }
 
 .olab { font-size: 17px; color: #a9c7ff; text-align: center; }
 .roxo { color: #d2b9ff; }
-.onum { font-size: 62px; font-weight: bold; font-family: SetGoBold; color: #ffffff; text-align: center; margin-top: 4px; }
+.onum { font-size: 62px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 4px; }
 
-.pt { height: 30px; font-size: 22px; font-weight: bold; font-family: SetGoBold; color: #ff7a2e; text-align: center; }
+.pt { height: 30px; font-size: 22px; font-weight: bold; color: #ff7a2e; text-align: center; }
 .chips { flex-direction: row; justify-content: center; margin-bottom: 6px; }
-.chip { font-size: 14px; color: #8b9298; background-color: #16181a; border-radius: 15px; padding-left: 8px; padding-right: 8px; padding-top: 7px; padding-bottom: 7px; margin-left: 3px; margin-right: 3px; }
+.chip { font-size: 14px; font-weight: bold; color: #8b9298; background-color: #16181a; border-radius: 15px; padding-left: 6px; padding-right: 6px; padding-top: 7px; padding-bottom: 7px; margin-left: 2px; margin-right: 2px; }
 .on { background-color: #ff7a2e; color: #180a00; }
 .stp { flex-direction: row; align-items: center; justify-content: center; margin-top: 8px; }
-.sl { font-size: 15px; color: #8b9298; width: 52px; }
+.sl { font-size: 16px; font-weight: bold; color: #8b9298; width: 52px; }
 .sbtn { width: 32px; height: 32px; border-radius: 16px; background-color: #16181a; color: #ffffff; font-size: 23px; text-align: center; margin-left: 4px; margin-right: 4px; }
-.sval { width: 36px; font-size: 28px; font-weight: bold; font-family: SetGoBold; color: #ffffff; text-align: center; }
+.sval { width: 36px; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center; }
 .prow { flex-direction: row; margin-top: 16px; }
-.pb { width: 86px; height: 34px; font-size: 14px; border-radius: 22px; padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0; margin-left: 4px; margin-right: 4px; text-align: center; }
+.pb { width: 86px; height: 34px; font-size: 14px; font-weight: bold; border-radius: 22px; padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0; margin-left: 4px; margin-right: 4px; text-align: center; }
 .sec { background-color: #33415a; color: #ffffff; }
 .pri { background-color: #ff7a2e; color: #180a00; }
 
-.cbig { font-size: 28px; font-weight: bold; font-family: SetGoBold; color: #ffffff; text-align: center; }
+.cbig { font-size: 28px; font-weight: bold; color: #ffffff; text-align: center; }
 .verde { color: #58d06a; }
 .csub { font-size: 16px; color: #8b9298; text-align: center; margin-top: 8px; }
-.builder-list { height: 140px; }
+.builder-list { height: 136px; }
 .treino-list { height: 154px; }
-.treino-list-avulso { height: 114px; }
-.finish { width: 154px; height: 32px; margin-top: 6px; font-size: 16px; font-weight: bold; font-family: SetGoBold; color: #ff7a2e; text-align: center; background-color: #24201c; border-radius: 16px; }
+.treino-list-avulso { height: 110px; }
+.finish { width: 154px; height: 32px; margin-top: 6px; font-size: 16px; font-weight: bold; color: #ff7a2e; text-align: center; background-color: #24201c; border-radius: 16px; }
 .holdbar { width: 154px; height: 4px; margin-top: 5px; background-color: #22262a; border-radius: 2px; flex-direction: row; }
 .holdfill { height: 4px; background-color: #ff7a2e; border-radius: 2px; }
 </style>

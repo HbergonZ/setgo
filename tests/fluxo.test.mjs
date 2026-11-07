@@ -120,3 +120,16 @@ test('finalizar exige segurar e OK descarta sessao', () => {
   assert.equal(p.temSessao, false)
   assert.equal(dados.setgo_sessao, undefined)
 })
+
+test('retomar sessao das versoes acentuadas mostra nomes legiveis sem perder progresso', () => {
+  const salvo = JSON.stringify({ nome: 'Peito / Tríceps', modo: 'salvo',
+    ex: [{ nome: 'Elevação de braços', tipo: 'reps', series: 3, reps: 12, descanso: 30 }], done: [1] })
+  const { pagina: p } = abrir(salvo)
+  p.continuar()
+  assert.equal(p.ativoNome, 'Peito / Triceps')
+  assert.equal(p.treinoView[0].nome, 'Elevacao de bracos')
+  assert.equal(p.treinoView[0].prog, '1/3')
+  p.abrirExercicio(0)
+  assert.equal(p.exNome, 'Elevacao de bracos')
+  assert.equal(p.ativo.done[0], 1)
+})

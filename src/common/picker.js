@@ -2,9 +2,9 @@
 
 // Linhas de stepper por tipo: cada par é [chave, rótulo].
 export var LINHAS = {
-  reps: [['series', 'Séries'], ['reps', 'Reps']],
-  tempo: [['series', 'Séries'], ['seg', 'Seg']],
-  combo: [['series', 'Séries'], ['a', 'Reps 1'], ['b', 'Reps 2']]
+  reps: [['series', 'Series'], ['reps', 'Reps']],
+  tempo: [['series', 'Series'], ['seg', 'Seg']],
+  combo: [['series', 'Series'], ['a', 'Reps 1'], ['b', 'Reps 2']]
 }
 
 // Limites de cada campo: mínimo, máximo e passo.

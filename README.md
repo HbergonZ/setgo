@@ -38,7 +38,7 @@ npm run deploy    # compila e instala na pulseira (precisa do celular no adb)
 
 ## Observações
 
-- A versão 0.2.2 inclui acentos, til e cedilha com fontes próprias, após a fonte padrão da pulseira mostrar quadradinhos. O carregamento na pulseira está em validação; veja abaixo.
+- A versão 0.2.3 usa textos sem acentos e a fonte padrão da pulseira. As versões com acentos falharam no aparelho físico; veja abaixo.
 - `designWidth` é 192 (tela 336x480 da Band 8 Pro).
 - Instalação pela página de debug do Mi Fitness, mesmo método do Placar Tênis (ver o README daquele projeto). A pulseira mantém o ícone da primeira instalação.
 
@@ -63,6 +63,7 @@ As medidas abaixo usam o `designWidth` de 192 unidades:
 - INICIAR e OK: altura 36, texto 18. Os botões em pares têm altura 34.
 - Menu: botões 172×48, texto 20. Os marcadores menores acomodam até oito séries.
 - As listas de exercícios ganharam o espaço liberado pelos botões menores.
+- Na 0.2.3, a montagem mantém uma área central de 136 unidades mesmo sem exercícios, para não concentrar tudo no topo. A mensagem vazia usa texto 18 em negrito, altura explícita e até três linhas. O botão `+ Adicionar` usa texto 18 em negrito e altura 38. Os seletores também usam negrito para melhorar a leitura no firmware real.
 
 A revisão foi conferida com toques no emulador: abrir treino salvo, CHECK, +15s, Pular, desfazer, toque curto e pressão longa em FINALIZAR, OK, treino avulso, tipos Reps/Tempo/Combo, seletores +/−, Adicionar, Cancelar, INICIAR e Cancelar/Pronto na isometria. INICIAR permanece inativo enquanto não há exercícios.
 
@@ -70,14 +71,10 @@ A revisão foi conferida com toques no emulador: abrir treino salvo, CHECK, +15s
 
 Um teste com a fonte padrão no emulador local Vela 5 renderizou corretamente `À â ê ô ã õ ç` e `Ação: á é í ó ú`. Portanto, não há uma limitação geral do texto Unicode no app. Esse resultado não confirma a cobertura da fonte do firmware da Smart Band 8 Pro: o emulador usa uma imagem de relógio Vela 5, embora tenha a resolução da pulseira.
 
-O teste inicial substituiu somente os rótulos dos dois botões do menu. A versão 0.2.1 aplica os caracteres aos textos reais: `SÉRIE`, `EXERCÍCIO FEITO`, `PRÓXIMO`, `CONCLUÍDO`, `Séries`, `Segure a posição`, `Elevação`, `Máquina`, `Bíceps` e `Tríceps`, entre outros. O pacote para teste na pulseira é `dist/dev.rea.setgo.debug.0.2.1.rpk` (código de versão 5).
+A versão 0.2.1 mostrou quadradinhos na pulseira com a fonte padrão. A 0.2.2 incluiu Roboto Regular e Bold por `@font-face`: o emulador registrou o carregamento e exibiu os acentos, mas o usuário confirmou que não funcionou na pulseira. A foto também mostrou textos de montagem menores que os do emulador. O comportamento do emulador não valida as fontes desse firmware.
 
-No Mi Fitness, selecione o arquivo `dev_rea_setgo.rpk` da pasta `Xiaomi-band` após executar o deploy. Abra um treino salvo novo ou monte um novo treino avulso para conferir os nomes: uma sessão retomada mantém os nomes gravados antes da atualização. Confira também o seletor (`Séries`) e o cronômetro (`Segure a posição`). Os testes automatizados e a compilação passaram; a exibição no aparelho físico ainda depende dessa conferência.
+A versão 0.2.3 (código 7) remove os arquivos TTF e as declarações de fonte própria. Os textos voltam a usar ASCII. `nomeCompativel` também remove acentos apenas na apresentação de nomes de sessões antigas, mantendo os exercícios e o progresso gravados. Um teste de regressão cobre a retomada de uma sessão das versões acentuadas.
 
-No envio da versão 0.2.1 pelo celular conectado, o arquivo foi selecionado e o Mi Fitness retornou `发送文件成功` (arquivo enviado com sucesso). Essa mensagem confirma o envio, mas não a renderização dos caracteres na tela da pulseira.
+O pacote atual é `dist/dev.rea.setgo.debug.0.2.3.rpk`. No Mi Fitness, selecione `dev_rea_setgo.rpk` da pasta `Xiaomi-band` após o deploy. Feche e reabra o SetGo para conferir a montagem vazia, o seletor, a lista e a retomada de sessão. A proporção final dos textos deve ser validada na pulseira; não há alteração de firmware.
 
-A versão 0.2.1 mostrou quadradinhos no aparelho, conforme o teste do usuário. A versão 0.2.2 (código 6) inclui Roboto Regular e Bold em `src/common/fonts`, registradas com `@font-face` na página. Os componentes de texto usam a fonte Regular, e os estilos em negrito selecionam explicitamente a Bold. Isso evita depender da cobertura de caracteres da fonte padrão, desde que o firmware carregue fontes incluídas no RPK. A renderização física desta versão ainda precisa de confirmação.
-
-As fontes vêm do [repositório oficial Roboto](https://github.com/googlefonts/roboto-2), sob Apache License 2.0. A licença está em `src/common/fonts/LICENSE-Roboto.txt`. O pacote atual é `dist/dev.rea.setgo.debug.0.2.2.rpk`; não há alteração de firmware.
-
-Na validação local da 0.2.2, o runtime do emulador registrou os dois arquivos TTF com `font_manager_add_path ... add success`, e as telas exibiram `Bíceps`, `Tríceps` e `SÉRIE` corretamente. Os 11 testes passaram e o Mi Fitness confirmou o envio da versão com fontes (`发送文件成功`). Feche e reabra o SetGo na pulseira para conferir a nova versão; esse resultado físico ainda está pendente.
+A 0.2.3 passou nos 12 testes, compilou e foi enviada pelo Mi Fitness, que retornou `发送文件成功`. O emulador mostrou a mensagem vazia em três linhas e o botão Adicionar ampliado; a confirmação das proporções na pulseira permanece pendente.
