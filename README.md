@@ -38,7 +38,7 @@ npm run deploy    # compila e instala na pulseira (precisa do celular no adb)
 
 ## Observações
 
-- Os textos da interface usam ASCII por precaução com as fontes da pulseira; veja a verificação de caracteres abaixo.
+- A versão 0.2.1 inclui acentos, til e cedilha nos textos da interface e nos nomes dos treinos. A renderização na pulseira está em validação; veja abaixo.
 - `designWidth` é 192 (tela 336x480 da Band 8 Pro).
 - Instalação pela página de debug do Mi Fitness, mesmo método do Placar Tênis (ver o README daquele projeto). A pulseira mantém o ícone da primeira instalação.
 
@@ -70,6 +70,10 @@ A revisão foi conferida com toques no emulador: abrir treino salvo, CHECK, +15s
 
 Um teste com a fonte padrão no emulador local Vela 5 renderizou corretamente `À â ê ô ã õ ç` e `Ação: á é í ó ú`. Portanto, não há uma limitação geral do texto Unicode no app. Esse resultado não confirma a cobertura da fonte do firmware da Smart Band 8 Pro: o emulador usa uma imagem de relógio Vela 5, embora tenha a resolução da pulseira.
 
-O teste temporário substituiu somente os rótulos dos dois botões do menu. O menu normal foi restaurado após a captura. O pacote local `dist/dev.rea.setgo.teste-acentos.0.2.0.rpk` permite repetir a verificação no aparelho; ele usa o mesmo identificador do app e substitui sua instalação. O pacote normal continua em `dist/dev.rea.setgo.debug.0.2.0.rpk`.
+O teste inicial substituiu somente os rótulos dos dois botões do menu. A versão 0.2.1 aplica os caracteres aos textos reais: `SÉRIE`, `EXERCÍCIO FEITO`, `PRÓXIMO`, `CONCLUÍDO`, `Séries`, `Segure a posição`, `Elevação`, `Máquina`, `Bíceps` e `Tríceps`, entre outros. O pacote para teste na pulseira é `dist/dev.rea.setgo.debug.0.2.1.rpk` (código de versão 5).
+
+No Mi Fitness, selecione o arquivo `dev_rea_setgo.rpk` da pasta `Xiaomi-band` após executar o deploy. Abra um treino salvo novo ou monte um novo treino avulso para conferir os nomes: uma sessão retomada mantém os nomes gravados antes da atualização. Confira também o seletor (`Séries`) e o cronômetro (`Segure a posição`). Os testes automatizados e a compilação passaram; a exibição no aparelho físico ainda depende dessa conferência.
+
+No envio da versão 0.2.1 pelo celular conectado, o arquivo foi selecionado e o Mi Fitness retornou `发送文件成功` (arquivo enviado com sucesso). Essa mensagem confirma o envio, mas não a renderização dos caracteres na tela da pulseira.
 
 Se os caracteres não aparecerem no aparelho, o próximo caminho a avaliar é uma fonte incluída no app. O compilador instalado reconhece `@font-face` e `font-family`, mas o carregamento dessa fonte ainda precisa ser validado no firmware da pulseira. Não é necessário alterar o firmware para o teste de texto.

@@ -6,12 +6,12 @@ export var SALVOS = [
     { nome: 'Puxador frente barra', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
     { nome: 'Remada polia alta corda', series: 2, tipo: 'reps', reps: 12, descanso: 30 },
     { nome: 'Peck deck invertido', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
-    { nome: 'Desenvolv. maquina fechada', series: 4, tipo: 'reps', reps: 10, descanso: 30 },
-    { nome: 'Elevacao lateral halteres', series: 4, tipo: 'reps', reps: 10, descanso: 30 },
-    { nome: 'Elevacao frontal anilha', series: 3, tipo: 'reps', reps: 10, descanso: 30 },
+    { nome: 'Desenvolv. máquina fechada', series: 4, tipo: 'reps', reps: 10, descanso: 30 },
+    { nome: 'Elevação lateral halteres', series: 4, tipo: 'reps', reps: 10, descanso: 30 },
+    { nome: 'Elevação frontal anilha', series: 3, tipo: 'reps', reps: 10, descanso: 30 },
     { nome: 'Banco lombar isometria', series: 2, tipo: 'tempo', seg: 30, descanso: 30 }
   ] },
-  { nome: 'Perna / Biceps', ex: [
+  { nome: 'Perna / Bíceps', ex: [
     { nome: 'Leg Press 45', series: 4, tipo: 'reps', reps: 15, descanso: 30 },
     { nome: 'Cadeira Extensora', series: 3, tipo: 'reps', reps: 12, descanso: 30 },
     { nome: 'Cadeira Flexora', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
@@ -19,13 +19,13 @@ export var SALVOS = [
     { nome: 'Panturrilha Vertical', series: 4, tipo: 'reps', reps: 15, descanso: 30 },
     { nome: 'Rosca alt + direta barra', series: 3, tipo: 'combo', a: 20, b: 10, descanso: 30 }
   ] },
-  { nome: 'Peito / Triceps', ex: [
+  { nome: 'Peito / Tríceps', ex: [
     { nome: 'Supino inclinado halteres', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
     { nome: 'Peck deck', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
-    { nome: 'Supino Maquina', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
-    { nome: 'Triceps Polia', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
-    { nome: 'Triceps Banco', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
-    { nome: 'Prancha isometrica alta', series: 4, tipo: 'tempo', seg: 30, descanso: 30 }
+    { nome: 'Supino Máquina', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
+    { nome: 'Tríceps Polia', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
+    { nome: 'Tríceps Banco', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
+    { nome: 'Prancha isométrica alta', series: 4, tipo: 'tempo', seg: 30, descanso: 30 }
   ] }
 ]
 

@@ -23,14 +23,14 @@
     <!-- BUILDER -->
     <div class="view" if="{{ vista === 'builder' }}">
       <text class="titulo">MONTAR TREINO</text>
-      <text class="vazio" if="{{ draft.length === 0 }}">Nenhum exercicio. Toque em Adicionar.</text>
+      <text class="vazio" if="{{ draft.length === 0 }}">Nenhum exercício. Toque em Adicionar.</text>
       <list class="lista builder-list" if="{{ draft.length > 0 }}">
         <list-item type="d" for="{{ draft }}" class="row">
           <text class="rnome">{{ $item.nome }}</text>
           <text class="rmeta">{{ $item.rotulo }}</text>
         </list-item>
       </list>
-      <text class="add" onclick="abrirPickerBuilder">+ Adicionar exercicio</text>
+      <text class="add" onclick="abrirPickerBuilder">+ Adicionar exercício</text>
       <text class="prim {{ draft.length ? '' : 'off' }}" onclick="iniciarAvulso">INICIAR</text>
     </div>
 
@@ -63,7 +63,7 @@
           <text class="rprog {{ $item.feito ? 'prog-feito' : '' }}">{{ $item.prog }}</text>
         </list-item>
       </list>
-      <text class="add" if="{{ ativoAvulso }}" onclick="abrirPickerTreino">+ Adicionar exercicio</text>
+      <text class="add" if="{{ ativoAvulso }}" onclick="abrirPickerTreino">+ Adicionar exercício</text>
       <text class="finish" ontouchstart="holdStart" ontouchend="holdEnd" ontouchcancel="holdEnd">FINALIZAR</text>
       <div class="holdbar"><div class="holdfill" style="width: {{ holdW }}px"></div></div>
       <text class="hint">segure para finalizar</text>
@@ -98,7 +98,7 @@
 
     <!-- TEMPO (isometria) -->
     <div class="view center" if="{{ vista === 'tempo' }}">
-      <text class="olab roxo">Segure a posicao</text>
+      <text class="olab roxo">Segure a posição</text>
       <text class="onum">{{ tempoNum }}</text>
       <div class="bar wide roxobar"><div class="barfill" style="width: {{ tempoW }}px"></div></div>
       <div class="prow">
@@ -110,7 +110,7 @@
     <!-- CONCLUIDO -->
     <div class="view center" if="{{ vista === 'concluido' }}">
       <text class="cbig">TREINO</text>
-      <text class="cbig verde">CONCLUIDO</text>
+      <text class="cbig verde">CONCLUÍDO</text>
       <text class="csub">{{ conclSub }}</text>
       <text class="prim ok" onclick="voltarMenu">OK</text>
     </div>
@@ -147,7 +147,7 @@ export default {
     tipo: 'reps',
     vals: { series: 3, reps: 12, seg: 30, a: 20, b: 10 },
     linhas: [],
-    pickTitulo: 'Exercicio 1',
+    pickTitulo: 'Exercício 1',
     pickFrom: 'builder',
     // treino ativo
     ativo: null,
@@ -244,7 +244,7 @@ export default {
     this.pickFrom = origem
     this.tipo = 'reps'
     this.vals = valoresPadrao()
-    this.pickTitulo = 'Exercicio ' + (qtd + 1)
+    this.pickTitulo = 'Exercício ' + (qtd + 1)
     this.montarLinhas()
     this.vista = 'picker'
   },
@@ -255,12 +255,12 @@ export default {
   cancelarPicker() { this.vista = this.pickFrom },
   addPicker() {
     if (this.pickFrom === 'builder') {
-      var ex = montarEx('Exercicio ' + (this.draft.length + 1), this.tipo, this.vals)
+      var ex = montarEx('Exercício ' + (this.draft.length + 1), this.tipo, this.vals)
       ex.rotulo = metaEx(ex)
       this.draft = this.draft.concat([ex])
       this.vista = 'builder'
     } else {
-      var ex2 = montarEx('Exercicio ' + (this.ativo.ex.length + 1), this.tipo, this.vals)
+      var ex2 = montarEx('Exercício ' + (this.ativo.ex.length + 1), this.tipo, this.vals)
       this.ativo.ex.push(ex2)
       this.ativo.done.push(0)
       this.salvar()
@@ -278,11 +278,11 @@ export default {
     this.exAlvo = alvoEx(e)
     this.exFim = d >= e.series
     if (this.exFim) {
-      this.exSit = 'EXERCICIO FEITO'
+      this.exSit = 'EXERCÍCIO FEITO'
       this.exBig = 'OK'; this.exDen = ''
-      this.exBotao = (this.curEx < this.ativo.ex.length - 1) ? 'PROXIMO' : 'VOLTAR'
+      this.exBotao = (this.curEx < this.ativo.ex.length - 1) ? 'PRÓXIMO' : 'VOLTAR'
     } else {
-      this.exSit = 'SERIE ' + (d + 1) + ' de ' + e.series
+      this.exSit = 'SÉRIE ' + (d + 1) + ' de ' + e.series
       this.exBig = String(d + 1); this.exDen = '/' + e.series
       this.exBotao = 'CHECK'
     }
@@ -368,7 +368,7 @@ export default {
   holdEnd() { this.pararHold(); this.holdW = 0 },
   pararHold() { if (holdTimer !== null) { clearInterval(holdTimer); holdTimer = null } },
   finalizar() {
-    this.conclSub = this.ativoAvulso ? 'Treino avulso descartado.' : this.ativoNome + ' concluido.'
+    this.conclSub = this.ativoAvulso ? 'Treino avulso descartado.' : this.ativoNome + ' concluído.'
     this.vista = 'concluido'
   },
   voltarMenu() {
