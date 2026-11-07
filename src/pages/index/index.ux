@@ -3,7 +3,7 @@
 
     <!-- MENU -->
     <div class="view menu" if="{{ vista === 'menu' }}">
-      <text class="logo">SETGO</text>
+      <text class="logo">SetGO</text>
       <text class="mbtn" onclick="irBuilder">Treino avulso</text>
       <text class="mbtn" onclick="irSalvos">Treinos salvos</text>
       <text class="cont" if="{{ temSessao }}" onclick="continuar">CONTINUAR TREINO</text>

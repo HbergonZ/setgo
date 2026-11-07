@@ -1,5 +1,7 @@
 # SetGo
 
+A versão 0.2.5 (código 9) ajusta somente o título da página inicial para `SetGO`.
+
 Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um Quick App em Vela JS (`.rpk`) e não depende do celular durante o treino.
 
 ## Funções
