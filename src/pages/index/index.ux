@@ -64,8 +64,8 @@
         </list-item>
       </list>
       <text class="add" if="{{ ativoAvulso }}" onclick="abrirPickerTreino">+ Adicionar exercicio</text>
-      <text class="prim" ontouchstart="holdStart" ontouchend="holdEnd" ontouchcancel="holdEnd">FINALIZAR</text>
-      <div class="bar"><div class="barfill" style="width: {{ holdW }}px"></div></div>
+      <text class="finish" ontouchstart="holdStart" ontouchend="holdEnd" ontouchcancel="holdEnd">FINALIZAR</text>
+      <div class="holdbar"><div class="holdfill" style="width: {{ holdW }}px"></div></div>
       <text class="hint">segure para finalizar</text>
     </div>
 
@@ -126,7 +126,7 @@ import { SALVOS, novaSessao, alvoEx, metaEx, treinoFeito } from '../../common/mo
 import { LINHAS, valoresPadrao, ajustar, montarEx } from '../../common/picker'
 
 var CHAVE = 'setgo_sessao'
-var LARGURA_HOLD = 182
+var LARGURA_HOLD = 154
 var LARGURA_BAR = 150
 var HOLD_MS = 1500
 var holdTimer = null
@@ -388,7 +388,7 @@ export default {
 .menu { padding-top: 18px; }
 
 .logo { height: 44px; font-size: 32px; font-weight: bold; color: #ff7a2e; text-align: center; letter-spacing: 1px; }
-.mbtn { width: 182px; height: 62px; margin-top: 12px; font-size: 24px; font-weight: bold; color: #ffffff; text-align: center; background-color: #16181a; border-radius: 18px; }
+.mbtn { width: 172px; height: 48px; margin-top: 12px; font-size: 20px; font-weight: bold; color: #ffffff; text-align: center; background-color: #16181a; border-radius: 18px; }
 .cont { width: 182px; height: 32px; margin-top: 8px; font-size: 16px; color: #ff7a2e; text-align: center; }
 
 .titulo { height: 30px; font-size: 19px; font-weight: bold; color: #ff7a2e; text-align: center; }
@@ -397,12 +397,12 @@ export default {
 .feito { background-color: #12331f; }
 .rnome { lines: 2; line-height: 20px; text-overflow: ellipsis; font-size: 16px; font-weight: bold; color: #ffffff; flex: 1; }
 .rmeta { font-size: 15px; color: #8b9298; }
-.rprog { font-size: 23px; font-weight: bold; color: #ff7a2e; }
+.rprog { font-size: 20px; font-weight: bold; color: #ff7a2e; }
 .prog-feito { color: #4caf50; }
 .vazio { width: 172px; font-size: 17px; color: #8b9298; text-align: center; margin-top: 18px; }
 
-.add { width: 182px; height: 44px; margin-top: 6px; font-size: 16px; color: #ff7a2e; text-align: center; background-color: #16181a; border-radius: 22px; }
-.prim { width: 182px; height: 50px; margin-top: 6px; font-size: 23px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 25px; }
+.add { width: 172px; height: 34px; margin-top: 6px; font-size: 14px; color: #ff7a2e; text-align: center; background-color: #16181a; border-radius: 22px; }
+.prim { width: 154px; height: 36px; margin-top: 6px; font-size: 18px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 18px; }
 .off { background-color: #22262a; color: #8b9298; }
 .ok { width: 130px; margin-top: 16px; }
 .bar { width: 182px; height: 8px; margin-top: 5px; background-color: #22262a; border-radius: 4px; flex-direction: row; }
@@ -418,9 +418,9 @@ export default {
 .bigden { font-size: 24px; color: #8b9298; font-weight: bold; }
 .alvo { height: 20px; font-size: 17px; color: #8b9298; text-align: center; margin-top: 2px; }
 .dots { flex-direction: row; justify-content: center; margin-top: 7px; margin-bottom: 7px; }
-.dot { width: 15px; height: 15px; border-radius: 8px; background-color: #2a2f34; margin-left: 4px; margin-right: 4px; }
+.dot { width: 10px; height: 10px; border-radius: 5px; background-color: #2a2f34; margin-left: 4px; margin-right: 4px; }
 .f { background-color: #ff7a2e; }
-.check { width: 164px; height: 46px; font-size: 26px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 30px; }
+.check { width: 144px; height: 38px; font-size: 20px; font-weight: bold; color: #180a00; text-align: center; background-color: #ff7a2e; border-radius: 19px; }
 .next { background-color: #2f6f3a; color: #ffffff; }
 .undo { height: 22px; font-size: 15px; color: #8b9298; text-align: center; margin-top: 4px; }
 
@@ -434,17 +434,20 @@ export default {
 .on { background-color: #ff7a2e; color: #180a00; }
 .stp { flex-direction: row; align-items: center; justify-content: center; margin-top: 8px; }
 .sl { font-size: 15px; color: #8b9298; width: 52px; }
-.sbtn { width: 32px; height: 32px; border-radius: 16px; background-color: #16181a; color: #ffffff; font-size: 28px; text-align: center; margin-left: 4px; margin-right: 4px; }
+.sbtn { width: 32px; height: 32px; border-radius: 16px; background-color: #16181a; color: #ffffff; font-size: 23px; text-align: center; margin-left: 4px; margin-right: 4px; }
 .sval { width: 36px; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center; }
 .prow { flex-direction: row; margin-top: 16px; }
-.pb { width: 86px; font-size: 14px; border-radius: 22px; padding-left: 0; padding-right: 0; padding-top: 11px; padding-bottom: 11px; margin-left: 4px; margin-right: 4px; text-align: center; }
+.pb { width: 86px; height: 34px; font-size: 14px; border-radius: 22px; padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0; margin-left: 4px; margin-right: 4px; text-align: center; }
 .sec { background-color: #33415a; color: #ffffff; }
 .pri { background-color: #ff7a2e; color: #180a00; }
 
 .cbig { font-size: 28px; font-weight: bold; color: #ffffff; text-align: center; }
 .verde { color: #58d06a; }
 .csub { font-size: 16px; color: #8b9298; text-align: center; margin-top: 8px; }
-.builder-list { height: 116px; }
-.treino-list { height: 126px; }
-.treino-list-avulso { height: 76px; }
+.builder-list { height: 140px; }
+.treino-list { height: 154px; }
+.treino-list-avulso { height: 114px; }
+.finish { width: 154px; height: 32px; margin-top: 6px; font-size: 16px; font-weight: bold; color: #ff7a2e; text-align: center; background-color: #24201c; border-radius: 16px; }
+.holdbar { width: 154px; height: 4px; margin-top: 5px; background-color: #22262a; border-radius: 2px; flex-direction: row; }
+.holdfill { height: 4px; background-color: #ff7a2e; border-radius: 2px; }
 </style>

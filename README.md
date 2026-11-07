@@ -53,3 +53,15 @@ As telas usam classes CSS simples para evitar que os estilos de estados se mistu
 Para voltar, deslize da borda esquerda para a direita. Para finalizar um treino, mantenha FINALIZAR pressionado por 1,5 segundo e toque em OK.
 
 Os testes automatizados cobrem treino salvo, descanso, desfazer, retomada pelo storage, conclusão da isometria e confirmação ao segurar. A vibração e o comportamento na Band 8 Pro ainda precisam de validação no aparelho físico.
+
+### Proporção dos controles
+
+As medidas abaixo usam o `designWidth` de 192 unidades:
+
+- FINALIZAR: 154×32, texto 16, fundo discreto e barra de confirmação de 4 unidades; mantém a confirmação de 1,5 segundo.
+- CHECK, PROXIMO e VOLTAR: 144×38, texto 20; o contador continua como informação principal.
+- INICIAR e OK: altura 36, texto 18. Os botões em pares têm altura 34.
+- Menu: botões 172×48, texto 20. Os marcadores menores acomodam até oito séries.
+- As listas de exercícios ganharam o espaço liberado pelos botões menores.
+
+A revisão foi conferida com toques no emulador: abrir treino salvo, CHECK, +15s, Pular, desfazer, toque curto e pressão longa em FINALIZAR, OK, treino avulso, tipos Reps/Tempo/Combo, seletores +/−, Adicionar, Cancelar, INICIAR e Cancelar/Pronto na isometria. INICIAR permanece inativo enquanto não há exercícios.
