@@ -38,7 +38,7 @@ npm run deploy    # compila e instala na pulseira (precisa do celular no adb)
 
 ## Observações
 
-- A versão 0.2.1 inclui acentos, til e cedilha nos textos da interface e nos nomes dos treinos. A renderização na pulseira está em validação; veja abaixo.
+- A versão 0.2.2 inclui acentos, til e cedilha com fontes próprias, após a fonte padrão da pulseira mostrar quadradinhos. O carregamento na pulseira está em validação; veja abaixo.
 - `designWidth` é 192 (tela 336x480 da Band 8 Pro).
 - Instalação pela página de debug do Mi Fitness, mesmo método do Placar Tênis (ver o README daquele projeto). A pulseira mantém o ícone da primeira instalação.
 
@@ -76,4 +76,8 @@ No Mi Fitness, selecione o arquivo `dev_rea_setgo.rpk` da pasta `Xiaomi-band` ap
 
 No envio da versão 0.2.1 pelo celular conectado, o arquivo foi selecionado e o Mi Fitness retornou `发送文件成功` (arquivo enviado com sucesso). Essa mensagem confirma o envio, mas não a renderização dos caracteres na tela da pulseira.
 
-Se os caracteres não aparecerem no aparelho, o próximo caminho a avaliar é uma fonte incluída no app. O compilador instalado reconhece `@font-face` e `font-family`, mas o carregamento dessa fonte ainda precisa ser validado no firmware da pulseira. Não é necessário alterar o firmware para o teste de texto.
+A versão 0.2.1 mostrou quadradinhos no aparelho, conforme o teste do usuário. A versão 0.2.2 (código 6) inclui Roboto Regular e Bold em `src/common/fonts`, registradas com `@font-face` na página. Os componentes de texto usam a fonte Regular, e os estilos em negrito selecionam explicitamente a Bold. Isso evita depender da cobertura de caracteres da fonte padrão, desde que o firmware carregue fontes incluídas no RPK. A renderização física desta versão ainda precisa de confirmação.
+
+As fontes vêm do [repositório oficial Roboto](https://github.com/googlefonts/roboto-2), sob Apache License 2.0. A licença está em `src/common/fonts/LICENSE-Roboto.txt`. O pacote atual é `dist/dev.rea.setgo.debug.0.2.2.rpk`; não há alteração de firmware.
+
+Na validação local da 0.2.2, o runtime do emulador registrou os dois arquivos TTF com `font_manager_add_path ... add success`, e as telas exibiram `Bíceps`, `Tríceps` e `SÉRIE` corretamente. Os 11 testes passaram e o Mi Fitness confirmou o envio da versão com fontes (`发送文件成功`). Feche e reabra o SetGo na pulseira para conferir a nova versão; esse resultado físico ainda está pendente.
