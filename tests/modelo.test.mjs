@@ -50,6 +50,15 @@ test('os 3 treinos salvos têm os exercícios esperados', () => {
   assert.equal(modelo.SALVOS[2].ex.length, 6)
   assert.equal(modelo.SALVOS[0].ex[6].tipo, 'tempo')     // Banco lombar isometria
   assert.equal(modelo.SALVOS[1].ex[5].tipo, 'combo')     // Rosca alt + direta
+  assert.deepEqual(modelo.SALVOS.map(t => t.ex.map(e => e.series)), [
+    [4, 4, 4, 4, 4, 3, 3], [4, 3, 4, 4, 4, 3], [4, 4, 4, 4, 4, 4]
+  ])
+  assert.deepEqual(modelo.SALVOS.map(t => t.ex.map(modelo.alvoEx)), [
+    ['12 reps', '12 reps', '12 reps', '10 reps', '10 reps', '10 reps', '30 seg'],
+    ['15 reps', '12 reps', '12 reps', '15 reps', '15 reps', '20 + 10 reps'],
+    ['12 reps', '12 reps', '12 reps', '12 reps', '12 reps', '30 seg']
+  ])
+  assert.equal(modelo.SALVOS[2].ex[5].tipo, 'tempo')
 })
 
 test('ajustar respeita limites e passo', () => {

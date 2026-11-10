@@ -13,15 +13,19 @@ const ux = await readFile(new URL('../src/pages/index/index.ux', import.meta.url
 const script = ux.match(/<script>([\s\S]*?)<\/script>/)[1]
   .replace(/^import .*$/gm, '').replace('export default', 'globalThis.pagina =')
 
-function abrir(salvo) {
+function abrir(salvo, opcoes = {}) {
   let agora = 0
   let id = 0
   const timers = new Map()
   const dados = { setgo_sessao: salvo }
+  let concluirLeitura
   const contexto = vm.createContext({
     ...modelo, ...picker,
     storage: {
-      get({ key, success }) { success(dados[key]) },
+      get({ key, success, fail }) {
+        concluirLeitura = () => opcoes.falhaLeitura ? fail() : success(dados[key])
+        if (!opcoes.leituraAdiada) concluirLeitura()
+      },
       set({ key, value }) { dados[key] = value },
       delete({ key }) { delete dados[key] }
     },
@@ -35,7 +39,7 @@ function abrir(salvo) {
   Object.assign(pagina, pagina.private)
   pagina.onInit()
   return {
-    pagina, dados, timers,
+    pagina, dados, timers, concluirLeitura: () => concluirLeitura(),
     passar(ms) { agora += ms; for (const fn of [...timers.values()]) fn() }
   }
 }
@@ -122,16 +126,96 @@ test('finalizar exige segurar e OK descarta sessao', () => {
 })
 
 test('retomar sessao das versoes acentuadas mostra nomes legiveis sem perder progresso', () => {
-  const salvo = JSON.stringify({ nome: 'Peito / Tríceps', modo: 'salvo',
-    ex: [{ nome: 'Elevação de braços', tipo: 'reps', series: 3, reps: 12, descanso: 30 }], done: [1] })
-  const { pagina: p } = abrir(salvo)
+  const sessao = modelo.novaSessao(modelo.SALVOS[2], 'salvo')
+  sessao.nome = 'Peito / Tríceps'
+  sessao.ex[2].nome = 'Supino Máquina'
+  sessao.done[2] = 1
+  const { pagina: p } = abrir(JSON.stringify(sessao))
   p.continuar()
   assert.equal(p.ativoNome, 'Peito / Triceps')
-  assert.equal(p.treinoView[0].nome, 'Elevacao de bracos')
-  assert.equal(p.treinoView[0].prog, '1/3')
+  assert.equal(p.treinoView[2].nome, 'Supino Maquina')
+  assert.equal(p.treinoView[2].prog, '1/4')
+  p.abrirExercicio(2)
+  assert.equal(p.exNome, 'Supino Maquina')
+  assert.equal(p.ativo.done[2], 1)
+})
+
+test('treino salvo retoma automaticamente e reabrir pela lista nao zera marcacoes', () => {
+  const { pagina: p, dados } = abrir()
+  p.abrirSalvo(0)
   p.abrirExercicio(0)
-  assert.equal(p.exNome, 'Elevacao de bracos')
-  assert.equal(p.ativo.done[0], 1)
+  for (let i = 0; i < 4; i++) {
+    p.checar()
+    if (p.vista === 'descanso') p.pularRest()
+  }
+  p.onHide()
+  p.onDestroy()
+  const { pagina: reaberta } = abrir(dados.setgo_sessao)
+  assert.equal(reaberta.vista, 'treino')
+  assert.equal(reaberta.treinoView[0].feito, true)
+  assert.equal(reaberta.treinoView[0].prog, '4/4')
+  reaberta.onBackPress()
+  assert.equal(reaberta.vista, 'salvos')
+  reaberta.abrirSalvo(0)
+  assert.equal(reaberta.ativo.done[0], 4)
+  assert.equal(reaberta.vista, 'treino')
+  reaberta.onBackPress()
+  reaberta.onBackPress()
+  assert.equal(reaberta.vista, 'menu')
+})
+
+test('todas as series marcadas permanecem ate confirmar FINALIZAR', () => {
+  const s = modelo.novaSessao(modelo.SALVOS[1], 'salvo')
+  s.done = s.ex.map(e => e.series)
+  const { pagina: p, dados } = abrir(JSON.stringify(s))
+  assert.equal(p.vista, 'treino')
+  assert.equal(p.temSessao, true)
+  assert.equal(p.treinoView.every(e => e.feito), true)
+  p.finalizar()
+  p.onHide()
+  p.onDestroy()
+  const { pagina: reaberta } = abrir(dados.setgo_sessao)
+  assert.equal(reaberta.temSessao, false)
+  assert.equal(reaberta.vista, 'menu')
+})
+
+test('sessao antiga recebe novas metas preservando o numero de series feitas', () => {
+  const s = modelo.novaSessao(modelo.SALVOS[0], 'salvo')
+  s.ex[1].series = 2
+  s.ex[6].series = 2
+  s.done[1] = 2
+  s.done[6] = 1
+  const { pagina: p } = abrir(JSON.stringify(s))
+  assert.equal(p.treinoView[1].prog, '2/4')
+  assert.equal(p.treinoView[1].feito, false)
+  assert.equal(p.treinoView[6].prog, '1/3')
+  assert.equal(p.ativo.ex[6].tipo, 'tempo')
+  assert.equal(p.ativo.ex[6].seg, 30)
+})
+
+test('leitura atrasada nao permite sobrescrever a sessao ao tocar em outro treino', () => {
+  const s = modelo.novaSessao(modelo.SALVOS[0], 'salvo')
+  s.done[0] = 3
+  const salvo = JSON.stringify(s)
+  const { pagina: p, dados, concluirLeitura } = abrir(salvo, { leituraAdiada: true })
+  p.abrirSalvo(1)
+  p.irBuilder()
+  p.iniciarAvulso()
+  assert.equal(dados.setgo_sessao, salvo)
+  assert.equal(p.vista, 'menu')
+  concluirLeitura()
+  assert.equal(p.carregandoSessao, false)
+  assert.equal(p.vista, 'treino')
+  assert.equal(p.ativo.done[0], 3)
+})
+
+test('falha de leitura libera a navegacao e voltar no avulso retorna ao menu', () => {
+  const { pagina: p } = abrir(undefined, { falhaLeitura: true })
+  assert.equal(p.carregandoSessao, false)
+  avulso(p)
+  p.onBackPress()
+  p.onBackPress()
+  assert.equal(p.vista, 'menu')
 })
 
 test('reps e combo voltam para a lista sem avancar ao proximo exercicio', () => {

@@ -4,12 +4,12 @@
 export var SALVOS = [
   { nome: 'Costa / Ombro', ex: [
     { nome: 'Puxador frente barra', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
-    { nome: 'Remada polia alta corda', series: 2, tipo: 'reps', reps: 12, descanso: 30 },
+    { nome: 'Remada polia alta corda', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
     { nome: 'Peck deck invertido', series: 4, tipo: 'reps', reps: 12, descanso: 30 },
     { nome: 'Desenvolv. maquina fechada', series: 4, tipo: 'reps', reps: 10, descanso: 30 },
     { nome: 'Elevacao lateral halteres', series: 4, tipo: 'reps', reps: 10, descanso: 30 },
     { nome: 'Elevacao frontal anilha', series: 3, tipo: 'reps', reps: 10, descanso: 30 },
-    { nome: 'Banco lombar isometria', series: 2, tipo: 'tempo', seg: 30, descanso: 30 }
+    { nome: 'Banco lombar isometria', series: 3, tipo: 'tempo', seg: 30, descanso: 30 }
   ] },
   { nome: 'Perna / Biceps', ex: [
     { nome: 'Leg Press 45', series: 4, tipo: 'reps', reps: 15, descanso: 30 },
@@ -61,6 +61,25 @@ export function novaSessao(treino, modo) {
     ex: JSON.parse(JSON.stringify(treino.ex)),
     done: treino.ex.map(function () { return 0 })
   }
+}
+
+// Atualiza as metas de uma sessão salva sem apagar as séries já registradas.
+export function atualizarSessaoSalva(sessao) {
+  if (sessao.modo !== 'salvo') return sessao
+  for (var i = 0; i < SALVOS.length; i++) {
+    if (nomeCompativel(sessao.nome) !== SALVOS[i].nome) continue
+    var atual = novaSessao(SALVOS[i], 'salvo')
+    for (var j = 0; j < atual.ex.length; j++) {
+      for (var k = 0; k < sessao.ex.length; k++) {
+        if (nomeCompativel(sessao.ex[k].nome) === atual.ex[j].nome) {
+          atual.done[j] = Math.max(0, Math.min(sessao.done[k], atual.ex[j].series))
+          break
+        }
+      }
+    }
+    return atual
+  }
+  return sessao
 }
 
 export function exercicioFeito(sessao, i) {

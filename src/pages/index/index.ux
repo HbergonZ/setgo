@@ -4,6 +4,7 @@
     <!-- MENU -->
     <div class="view menu" if="{{ vista === 'menu' }}">
       <text class="logo">SetGO</text>
+      <text class="hint" if="{{ carregandoSessao }}">Carregando treino...</text>
       <text class="mbtn" onclick="irBuilder">Treino avulso</text>
       <text class="mbtn" onclick="irSalvos">Treinos salvos</text>
       <text class="cont" if="{{ temSessao }}" onclick="continuar">CONTINUAR TREINO</text>
@@ -124,7 +125,7 @@
 import storage from '@system.storage'
 import vibrator from '@system.vibrator'
 import brightness from '@system.brightness'
-import { SALVOS, novaSessao, alvoEx, metaEx, treinoFeito, nomeCompativel } from '../../common/modelo'
+import { SALVOS, novaSessao, alvoEx, metaEx, nomeCompativel, atualizarSessaoSalva } from '../../common/modelo'
 import { LINHAS, valoresPadrao, ajustar, montarEx } from '../../common/picker'
 
 var CHAVE = 'setgo_sessao'
@@ -143,6 +144,7 @@ export default {
   private: {
     vista: 'menu',
     temSessao: false,
+    carregandoSessao: true,
     salvosView: [],
     draft: [],
     // picker
@@ -175,14 +177,22 @@ export default {
         success: function (txt) {
           var s = null
           try { s = txt ? JSON.parse(txt) : null } catch (e) { s = null }
-          if (s && s.ex && s.done && !treinoFeito(s)) { pagina.ativo = s; pagina.temSessao = true }
-        }
+          if (s && Array.isArray(s.ex) && s.ex.length > 0 && Array.isArray(s.done) && s.done.length === s.ex.length) {
+            pagina.ativo = atualizarSessaoSalva(s)
+            pagina.temSessao = true
+            pagina.setAtivo(pagina.ativo)
+            pagina.vista = 'treino'
+            pagina.salvar()
+          }
+          pagina.carregandoSessao = false
+        },
+        fail: function () { pagina.carregandoSessao = false }
       })
-    } catch (e) {}
+    } catch (e) { this.carregandoSessao = false }
   },
   onShow() { try { brightness.setKeepScreenOn({ keepScreenOn: true }) } catch (e) {} },
-  onHide() { try { brightness.setKeepScreenOn({ keepScreenOn: false }) } catch (e) {} },
-  onDestroy() { this.pararTimers(); this.pararHold() },
+  onHide() { this.salvar(); this.holdEnd(); try { brightness.setKeepScreenOn({ keepScreenOn: false }) } catch (e) {} },
+  onDestroy() { this.salvar(); this.pararTimers(); this.pararHold() },
 
   // Botao voltar: navega dentro do app; no menu, deixa sair.
   onBackPress() {
@@ -193,25 +203,38 @@ export default {
     else if (v === 'descanso') { this.pularRest() }
     else if (v === 'tempo') { this.cancelarTempo() }
     else if (v === 'concluido') { this.voltarMenu() }
+    else if (v === 'treino' && this.ativo && this.ativo.modo === 'salvo') { this.vista = 'salvos' }
     else { this.vista = 'menu' }
     return true
   },
 
-  salvar() { try { storage.set({ key: CHAVE, value: JSON.stringify(this.ativo) }) } catch (e) {} },
+  salvar() {
+    if (!this.ativo || this.vista === 'concluido') return
+    try { storage.set({ key: CHAVE, value: JSON.stringify(this.ativo) }) } catch (e) {}
+  },
   apagar() { try { storage.delete({ key: CHAVE }) } catch (e) {} },
 
   // ---- Navegacao ----
-  irBuilder() { this.draft = []; this.vista = 'builder' },
-  irSalvos() { this.vista = 'salvos' },
-  continuar() { this.setAtivo(this.ativo); this.vista = 'treino' },
+  irBuilder() { if (this.carregandoSessao) return; this.draft = []; this.vista = 'builder' },
+  irSalvos() { if (!this.carregandoSessao) this.vista = 'salvos' },
+  continuar() { if (!this.ativo || this.carregandoSessao) return; this.setAtivo(this.ativo); this.vista = 'treino' },
 
   abrirSalvo(i) {
+    if (this.carregandoSessao) return
+    if (this.ativo && this.ativo.modo === 'salvo' && nomeCompativel(this.ativo.nome) === SALVOS[i].nome) {
+      this.ativo = atualizarSessaoSalva(this.ativo)
+      this.setAtivo(this.ativo)
+      this.salvar()
+      this.vista = 'treino'
+      return
+    }
     this.ativo = novaSessao(SALVOS[i], 'salvo')
     this.salvar(); this.temSessao = true
     this.setAtivo(this.ativo)
     this.vista = 'treino'
   },
   iniciarAvulso() {
+    if (this.carregandoSessao) return
     if (this.draft.length === 0) return
     var limpos = this.draft.map(function (e) {
       var c = {}
@@ -369,6 +392,7 @@ export default {
   holdEnd() { this.pararHold(); this.holdW = 0 },
   pararHold() { if (holdTimer !== null) { clearInterval(holdTimer); holdTimer = null } },
   finalizar() {
+    this.apagar()
     this.conclSub = this.ativoAvulso ? 'Treino avulso descartado.' : this.ativoNome + ' concluido.'
     this.vista = 'concluido'
   },

@@ -1,12 +1,12 @@
 # SetGo
 
-A versão 0.2.5 (código 9) ajusta somente o título da página inicial para `SetGO`.
+A versão 0.2.6 (código 10) corrige a retomada do treino, atualiza as metas de Costa/Ombro e ajusta a navegação dos treinos salvos.
 
 Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um Quick App em Vela JS (`.rpk`) e não depende do celular durante o treino.
 
 ## Funções
 
-- **Menu:** `Treino avulso` (monta na hora, não salva) ou `Treinos salvos` (os 3 treinos fixos).
+- **Menu:** `Treino avulso` (monta na hora, sem virar modelo salvo) ou `Treinos salvos` (os 3 treinos fixos).
 - **Treino avulso:** adiciona exercícios escolhendo o tipo — `Reps`, `Tempo` (isometria em segundos) ou `Combo` (dois movimentos por série) — e os valores. Viram "Exercício 1", "Exercício 2"... Dá para adicionar mais com o treino já iniciado. Ao finalizar, é descartado.
 - **Tela do exercício:** nome, série atual (`SERIE 2 de 4`), alvo (`12 reps`, `30 seg` ou `20 + 10 reps`), bolinhas de progresso e botão `CHECK`. O botão azul `DESFAZER` volta uma série.
 - **Reps/Combo:** um `CHECK` fecha a série.
@@ -14,7 +14,7 @@ Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um 
 - **Exercício concluído:** a última série retorna diretamente à lista, sem abrir o próximo exercício. É possível reabrir o exercício concluído para desfazer uma série; seu botão principal mostra `VOLTAR`.
 - **Descanso:** 30s por padrão entre as séries, com `+15s` e `Pular`, vibrando ao zerar.
 - **Finalizar:** segure o botão `FINALIZAR` até a barra encher, para confirmar.
-- O treino em andamento fica salvo (`@system.storage`); ao reabrir o app aparece `CONTINUAR TREINO`.
+- O treino em andamento fica salvo (`@system.storage`); ao reabrir, o app retoma automaticamente sua lista com as marcações. O menu também oferece `CONTINUAR TREINO` enquanto há sessão ativa.
 - Mantém a tela acesa durante o treino.
 
 ## Estrutura
@@ -92,3 +92,15 @@ A 0.2.3 passou nos 12 testes, compilou e foi enviada pelo Mi Fitness, que retorn
 O pacote é `dist/dev.rea.setgo.debug.0.2.4.rpk` (código 8). Os 13 testes cobrem o novo retorno à lista, persistência do progresso, desfazer após reabrir e os fluxos de isometria. A proporção dos controles ainda deve ser conferida na pulseira após o envio.
 
 O emulador confirmou o seletor Reps/Combo sem quebra dos valores, o novo botão DESFAZER e o retorno automático à lista ao marcar a última série. Os toques em +/− e DESFAZER também foram conferidos. O Mi Fitness confirmou o envio da 0.2.4 com `发送文件成功`.
+
+### Retomada e treinos na versão 0.2.6
+
+Abrir novamente o mesmo treino salvo retoma sua sessão, em vez de criar uma cópia zerada. A leitura inicial do storage termina antes de permitir iniciar outra sessão. O progresso é salvo a cada alteração e reforçado ao ocultar/destruir a página. Mesmo com todos os exercícios marcados, a sessão permanece disponível até confirmar FINALIZAR; a confirmação apaga o registro, e ocultar a tela de conclusão não o recria.
+
+O gesto voltar segue `exercício → lista de exercícios → treinos salvos → menu` nos treinos fixos. No avulso, a lista volta ao menu. Continua existindo uma única sessão em andamento: escolher um treino diferente ou iniciar outro avulso a substitui.
+
+Costa/Ombro passa a ter Remada polia alta corda **4×12** e Banco lombar isometria **3×30 segundos**. Os demais exercícios seguem a lista conferida do usuário; Perna/Bíceps mantém o Combo de **3×(20+10)**, e Peito/Tríceps mantém a prancha de **4×30 segundos**. Tempo e Combo continuam disponíveis no avulso. Uma sessão fixa antiga recebe as novas metas preservando a quantidade de séries já registradas por exercício.
+
+O pacote é `dist/dev.rea.setgo.debug.0.2.6.rpk`. Os testes cobrem saída/retomada, reabertura pela lista, sessão inteiramente marcada, leitura atrasada, atualização das metas antigas e a navegação de volta, além dos fluxos anteriores.
+
+Os 18 testes passaram. No emulador, concluir o Puxador em 4/4, voltar aos treinos salvos e reabrir Costa/Ombro manteve a marcação. Após encerrar os processos do emulador e iniciá-lo novamente, a sessão abriu automaticamente com o mesmo 4/4. O Mi Fitness confirmou o envio da 0.2.6 (`发送文件成功`); a retomada no firmware da pulseira ainda deve ser conferida pelo usuário.
