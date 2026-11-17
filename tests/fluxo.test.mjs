@@ -9,6 +9,7 @@ async function carregar(rel) {
 }
 const modelo = await carregar('../src/common/modelo.js')
 const picker = await carregar('../src/common/picker.js')
+const cargas = await carregar('../src/common/cargas.js')
 const ux = await readFile(new URL('../src/pages/index/index.ux', import.meta.url), 'utf8')
 const script = ux.match(/<script>([\s\S]*?)<\/script>/)[1]
   .replace(/^import .*$/gm, '').replace('export default', 'globalThis.pagina =')
@@ -17,14 +18,15 @@ function abrir(salvo, opcoes = {}) {
   let agora = 0
   let id = 0
   const timers = new Map()
-  const dados = { setgo_sessao: salvo }
-  let concluirLeitura
+  const dados = { setgo_sessao: salvo, setgo_cargas: opcoes.cargas }
+  const leituras = []
   const contexto = vm.createContext({
-    ...modelo, ...picker,
+    ...modelo, ...picker, ...cargas,
     storage: {
       get({ key, success, fail }) {
-        concluirLeitura = () => opcoes.falhaLeitura ? fail() : success(dados[key])
-        if (!opcoes.leituraAdiada) concluirLeitura()
+        const concluir = () => opcoes.falhaLeitura ? fail() : success(dados[key])
+        leituras.push(concluir)
+        if (!opcoes.leituraAdiada) concluir()
       },
       set({ key, value }) { dados[key] = value },
       delete({ key }) { delete dados[key] }
@@ -39,7 +41,7 @@ function abrir(salvo, opcoes = {}) {
   Object.assign(pagina, pagina.private)
   pagina.onInit()
   return {
-    pagina, dados, timers, concluirLeitura: () => concluirLeitura(),
+    pagina, dados, timers, concluirLeitura: () => { for (const concluir of leituras) concluir() },
     passar(ms) { agora += ms; for (const fn of [...timers.values()]) fn() }
   }
 }
@@ -240,4 +242,40 @@ test('reps e combo voltam para a lista sem avancar ao proximo exercicio', () => 
     assert.equal(p.exFim, false)
     assert.equal(p.exBotao, 'CHECK')
   }
+})
+
+test('carga de treino salvo persiste separada da sessao ate ser alterada', () => {
+  const { pagina: p, dados } = abrir()
+  p.irSalvos()
+  p.abrirSalvo(0)
+  p.abrirExercicio(0)
+  assert.equal(p.exCarga, 'CARGA')
+  p.abrirCarga()
+  p.cargaMais5()
+  p.cargaMaisMeio()
+  p.salvarCarga()
+  assert.equal(p.exCarga, '5.5 kg')
+  assert.match(p.treinoView[0].prog, /5\.5 kg/)
+  const salvas = dados.setgo_cargas
+  p.finalizar()
+  p.voltarMenu()
+  assert.equal(dados.setgo_cargas, salvas)
+
+  const { pagina: reaberta } = abrir(undefined, { cargas: salvas })
+  reaberta.irSalvos()
+  reaberta.abrirSalvo(0)
+  reaberta.abrirExercicio(0)
+  assert.equal(reaberta.exCarga, '5.5 kg')
+  reaberta.abrirCarga()
+  reaberta.cargaMenos5()
+  reaberta.cargaMenosMeio()
+  reaberta.salvarCarga()
+  assert.equal(reaberta.exCarga, 'CARGA')
+})
+
+test('treino avulso nao oferece edicao de carga', () => {
+  const { pagina: p } = abrir()
+  avulso(p)
+  p.abrirCarga()
+  assert.equal(p.vista, 'exercicio')
 })

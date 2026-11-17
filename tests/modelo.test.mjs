@@ -9,6 +9,7 @@ async function carregar(rel) {
 }
 const modelo = await carregar('../src/common/modelo.js')
 const picker = await carregar('../src/common/picker.js')
+const cargas = await carregar('../src/common/cargas.js')
 
 test('metaEx e alvoEx cobrem reps, tempo e combo', () => {
   assert.equal(modelo.metaEx({ tipo: 'reps', series: 4, reps: 12 }), '4x12')
@@ -73,4 +74,14 @@ test('montarEx monta por tipo com descanso de 30s', () => {
   assert.deepEqual(picker.montarEx('Exercício 1', 'reps', vals), { nome: 'Exercício 1', series: 3, tipo: 'reps', descanso: 30, reps: 12 })
   assert.deepEqual(picker.montarEx('Exercício 2', 'tempo', vals), { nome: 'Exercício 2', series: 3, tipo: 'tempo', descanso: 30, seg: 40 })
   assert.deepEqual(picker.montarEx('Exercício 3', 'combo', vals), { nome: 'Exercício 3', series: 3, tipo: 'combo', descanso: 30, a: 20, b: 10 })
+})
+
+test('carga usa chave estavel, meio quilo e limites seguros', () => {
+  assert.equal(cargas.chaveCarga('Costa / Ombro', 'Puxador'), 'Costa / Ombro|Puxador')
+  assert.equal(cargas.ajustarCarga(10, 0.5), 10.5)
+  assert.equal(cargas.ajustarCarga(2, -5), 0)
+  assert.equal(cargas.ajustarCarga(499, 5), 500)
+  assert.equal(cargas.rotuloCarga(0), 'Sem carga')
+  assert.equal(cargas.rotuloCarga(12.5), '12.5 kg')
+  assert.equal(cargas.rotuloCarga(20), '20 kg')
 })

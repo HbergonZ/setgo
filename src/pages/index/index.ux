@@ -63,7 +63,7 @@
       <list class="lista {{ ativoAvulso ? 'treino-list-avulso' : 'treino-list' }}">
         <list-item type="e" for="{{ treinoView }}" class="row {{ $item.feito ? 'feito' : '' }}" onclick="abrirExercicio($idx)">
           <text class="rnome">{{ $item.nome }}</text>
-          <text class="rprog {{ $item.feito ? 'prog-feito' : '' }}">{{ $item.prog }}</text>
+          <text class="{{ $item.progClasse }} {{ $item.feito ? 'prog-feito' : '' }}">{{ $item.prog }}</text>
         </list-item>
       </list>
       <text class="add" if="{{ ativoAvulso }}" onclick="abrirPickerTreino">+ Adicionar</text>
@@ -80,12 +80,32 @@
         <text class="big">{{ exBig }}</text>
         <text class="bigden">{{ exDen }}</text>
       </div>
-      <text class="alvo">{{ exAlvo }}</text>
+      <div class="meta-row">
+        <text class="alvo {{ ativoAvulso ? 'alvo-full' : '' }}">{{ exAlvo }}</text>
+        <text class="carga-link" if="{{ !ativoAvulso }}" onclick="abrirCarga">{{ exCarga }}</text>
+      </div>
       <div class="dots">
         <text class="dot {{ $item ? 'f' : '' }}" for="{{ exDots }}"></text>
       </div>
       <text class="check {{ exFim ? 'next' : '' }}" onclick="checar">{{ exBotao }}</text>
       <text class="undo" onclick="desfazer">DESFAZER</text>
+    </div>
+
+    <!-- CARGA DO EXERCICIO SALVO -->
+    <div class="view center" if="{{ vista === 'carga' }}">
+      <text class="pt">CARGA</text>
+      <text class="carga-nome">{{ exNome }}</text>
+      <text class="carga-valor">{{ cargaRotulo }}</text>
+      <div class="carga-row">
+        <text class="carga-btn" onclick="cargaMenos5">-5</text>
+        <text class="carga-btn" onclick="cargaMenosMeio">-0.5</text>
+        <text class="carga-btn" onclick="cargaMaisMeio">+0.5</text>
+        <text class="carga-btn" onclick="cargaMais5">+5</text>
+      </div>
+      <div class="prow carga-actions">
+        <text class="pb sec" onclick="cancelarCarga">Cancelar</text>
+        <text class="pb pri" onclick="salvarCarga">Salvar</text>
+      </div>
     </div>
 
     <!-- DESCANSO -->
@@ -127,8 +147,10 @@ import vibrator from '@system.vibrator'
 import brightness from '@system.brightness'
 import { SALVOS, novaSessao, alvoEx, metaEx, nomeCompativel, atualizarSessaoSalva } from '../../common/modelo'
 import { LINHAS, valoresPadrao, ajustar, montarEx } from '../../common/picker'
+import { chaveCarga, normalizarCarga, ajustarCarga, rotuloCarga } from '../../common/cargas'
 
 var CHAVE = 'setgo_sessao'
+var CHAVE_CARGAS = 'setgo_cargas'
 var LARGURA_HOLD = 154
 var LARGURA_BAR = 150
 var HOLD_MS = 1500
@@ -145,6 +167,7 @@ export default {
     vista: 'menu',
     temSessao: false,
     carregandoSessao: true,
+    cargas: {},
     salvosView: [],
     draft: [],
     // picker
@@ -160,7 +183,9 @@ export default {
     treinoView: [],
     curEx: 0,
     // exercicio
-    exSit: '', exNome: '', exBig: '', exDen: '', exAlvo: '', exDots: [], exBotao: 'CHECK', exFim: false,
+    exSit: '', exNome: '', exBig: '', exDen: '', exAlvo: '', exCarga: 'CARGA', exDots: [], exBotao: 'CHECK', exFim: false,
+    cargaTemp: 0,
+    cargaRotulo: 'Sem carga',
     // timers
     holdW: 0,
     restNum: 0, restW: 0, restTotal: 30,
@@ -171,6 +196,11 @@ export default {
   onInit() {
     this.salvosView = SALVOS.map(function (w) { return { nome: w.nome, qtd: w.ex.length } })
     var pagina = this
+    var pendentes = 2
+    function pronto() {
+      pendentes--
+      if (pendentes === 0) pagina.carregandoSessao = false
+    }
     try {
       storage.get({
         key: CHAVE,
@@ -184,11 +214,27 @@ export default {
             pagina.vista = 'treino'
             pagina.salvar()
           }
-          pagina.carregandoSessao = false
+          pronto()
         },
-        fail: function () { pagina.carregandoSessao = false }
+        fail: pronto
       })
-    } catch (e) { this.carregandoSessao = false }
+    } catch (e) { pronto() }
+    try {
+      storage.get({
+        key: CHAVE_CARGAS,
+        success: function (txt) {
+          var dados = {}
+          try { dados = txt ? JSON.parse(txt) : {} } catch (e) { dados = {} }
+          pagina.cargas = dados && typeof dados === 'object' ? dados : {}
+          if (pagina.ativo) {
+            pagina.montarTreinoView()
+            if (pagina.vista === 'exercicio') pagina.renderEx()
+          }
+          pronto()
+        },
+        fail: pronto
+      })
+    } catch (e) { pronto() }
   },
   onShow() { try { brightness.setKeepScreenOn({ keepScreenOn: true }) } catch (e) {} },
   onHide() { this.salvar(); this.holdEnd(); try { brightness.setKeepScreenOn({ keepScreenOn: false }) } catch (e) {} },
@@ -199,6 +245,7 @@ export default {
     var v = this.vista
     if (v === 'menu') return false
     if (v === 'exercicio') { this.vista = 'treino'; this.montarTreinoView() }
+    else if (v === 'carga') { this.vista = 'exercicio' }
     else if (v === 'picker') { this.vista = this.pickFrom }
     else if (v === 'descanso') { this.pularRest() }
     else if (v === 'tempo') { this.cancelarTempo() }
@@ -213,6 +260,7 @@ export default {
     try { storage.set({ key: CHAVE, value: JSON.stringify(this.ativo) }) } catch (e) {}
   },
   apagar() { try { storage.delete({ key: CHAVE }) } catch (e) {} },
+  persistirCargas() { try { storage.set({ key: CHAVE_CARGAS, value: JSON.stringify(this.cargas) }) } catch (e) {} },
 
   // ---- Navegacao ----
   irBuilder() { if (this.carregandoSessao) return; this.draft = []; this.vista = 'builder' },
@@ -253,8 +301,15 @@ export default {
   },
   montarTreinoView() {
     var s = this.ativo
+    var pagina = this
     this.treinoView = s.ex.map(function (e, i) {
-      return { nome: nomeCompativel(e.nome), prog: s.done[i] + '/' + e.series, feito: s.done[i] >= e.series }
+      var prog = s.done[i] + '/' + e.series
+      var temCarga = false
+      if (s.modo === 'salvo') {
+        var carga = pagina.cargas[chaveCarga(nomeCompativel(s.nome), nomeCompativel(e.nome))]
+        if (normalizarCarga(carga) > 0) { prog += '\n' + rotuloCarga(carga); temCarga = true }
+      }
+      return { nome: nomeCompativel(e.nome), prog: prog, progClasse: temCarga ? 'rprog-carga' : 'rprog', feito: s.done[i] >= e.series }
     })
   },
 
@@ -301,6 +356,10 @@ export default {
     var d = this.ativo.done[this.curEx]
     this.exNome = nomeCompativel(e.nome)
     this.exAlvo = alvoEx(e)
+    if (!this.ativoAvulso) {
+      var chave = chaveCarga(this.ativoNome, this.exNome)
+      this.exCarga = normalizarCarga(this.cargas[chave]) > 0 ? rotuloCarga(this.cargas[chave]) : 'CARGA'
+    }
     this.exFim = d >= e.series
     if (this.exFim) {
       this.exSit = 'EXERCICIO FEITO'
@@ -336,6 +395,36 @@ export default {
   },
   desfazer() {
     if (this.ativo.done[this.curEx] > 0) { this.ativo.done[this.curEx]--; this.salvar(); this.renderEx(); this.montarTreinoView() }
+  },
+
+  // ---- Carga persistente dos treinos salvos ----
+  abrirCarga() {
+    if (this.ativoAvulso) return
+    var chave = chaveCarga(this.ativoNome, this.exNome)
+    this.cargaTemp = normalizarCarga(this.cargas[chave])
+    this.cargaRotulo = rotuloCarga(this.cargaTemp)
+    this.vista = 'carga'
+  },
+  ajustarCargaTela(delta) {
+    this.cargaTemp = ajustarCarga(this.cargaTemp, delta)
+    this.cargaRotulo = rotuloCarga(this.cargaTemp)
+  },
+  cargaMenos5() { this.ajustarCargaTela(-5) },
+  cargaMenosMeio() { this.ajustarCargaTela(-0.5) },
+  cargaMaisMeio() { this.ajustarCargaTela(0.5) },
+  cargaMais5() { this.ajustarCargaTela(5) },
+  cancelarCarga() { this.vista = 'exercicio' },
+  salvarCarga() {
+    var chave = chaveCarga(this.ativoNome, this.exNome)
+    var copia = {}
+    for (var k in this.cargas) copia[k] = this.cargas[k]
+    if (this.cargaTemp > 0) copia[chave] = normalizarCarga(this.cargaTemp)
+    else delete copia[chave]
+    this.cargas = copia
+    this.persistirCargas()
+    this.renderEx()
+    this.montarTreinoView()
+    this.vista = 'exercicio'
   },
 
   // ---- Isometria ----
@@ -422,7 +511,8 @@ export default {
 .feito { background-color: #12331f; }
 .rnome { lines: 2; line-height: 20px; text-overflow: ellipsis; font-size: 16px; font-weight: bold; color: #ffffff; flex: 1; }
 .rmeta { font-size: 15px; color: #8b9298; }
-.rprog { font-size: 20px; font-weight: bold; color: #ff7a2e; }
+.rprog { width: 48px; lines: 1; font-size: 20px; font-weight: bold; color: #ff7a2e; text-align: right; }
+.rprog-carga { width: 58px; lines: 2; line-height: 18px; font-size: 15px; font-weight: bold; color: #ff7a2e; text-align: right; }
 .prog-feito { color: #4caf50; }
 .vazio { width: 164px; height: 72px; lines: 3; line-height: 24px; font-size: 18px; font-weight: bold; color: #b9bec3; text-align: center; }
 .builder-empty { width: 192px; height: 136px; flex-direction: column; justify-content: center; align-items: center; }
@@ -442,7 +532,10 @@ export default {
 .bigrow { flex-direction: row; align-items: flex-end; justify-content: center; margin-top: 4px; }
 .big { font-size: 44px; font-weight: bold; color: #ffffff; }
 .bigden { font-size: 24px; color: #8b9298; font-weight: bold; }
-.alvo { height: 20px; font-size: 17px; color: #8b9298; text-align: center; margin-top: 2px; }
+.meta-row { width: 184px; height: 24px; flex-direction: row; align-items: center; justify-content: center; margin-top: 1px; }
+.alvo { width: 86px; height: 22px; lines: 1; font-size: 15px; color: #8b9298; text-align: center; }
+.alvo-full { width: 170px; font-size: 17px; }
+.carga-link { width: 86px; height: 24px; lines: 1; font-size: 14px; font-weight: bold; color: #ffb17a; text-align: center; background-color: #24201c; border-radius: 12px; }
 .dots { flex-direction: row; justify-content: center; margin-top: 7px; margin-bottom: 7px; }
 .dot { width: 10px; height: 10px; border-radius: 5px; background-color: #2a2f34; margin-left: 4px; margin-right: 4px; }
 .f { background-color: #ff7a2e; }
@@ -478,4 +571,9 @@ export default {
 .holdfill { height: 4px; background-color: #ff7a2e; border-radius: 2px; }
 .saved-name { width: 96px; lines: 2; line-height: 20px; text-overflow: ellipsis; font-size: 16px; font-weight: bold; color: #ffffff; }
 .saved-count { width: 44px; margin-left: 14px; lines: 1; font-size: 12px; color: #8b9298; text-align: right; }
+.carga-nome { width: 184px; height: 46px; lines: 2; line-height: 21px; font-size: 18px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 8px; }
+.carga-valor { width: 184px; height: 54px; lines: 1; font-size: 34px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 4px; }
+.carga-row { width: 188px; height: 40px; flex-direction: row; align-items: center; justify-content: center; margin-top: 6px; }
+.carga-btn { width: 42px; height: 34px; lines: 1; font-size: 16px; font-weight: bold; color: #ffffff; text-align: center; background-color: #33415a; border-radius: 17px; margin-left: 2px; margin-right: 2px; }
+.carga-actions { margin-top: 14px; }
 </style>

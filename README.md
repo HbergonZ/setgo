@@ -1,6 +1,6 @@
 # SetGo
 
-A versão 0.2.6 (código 10) corrige a retomada do treino, atualiza as metas de Costa/Ombro e ajusta a navegação dos treinos salvos.
+A versão 0.2.7 (código 11) permite registrar e manter a carga de cada exercício dos treinos salvos pela própria pulseira.
 
 Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um Quick App em Vela JS (`.rpk`) e não depende do celular durante o treino.
 
@@ -9,6 +9,7 @@ Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um 
 - **Menu:** `Treino avulso` (monta na hora, sem virar modelo salvo) ou `Treinos salvos` (os 3 treinos fixos).
 - **Treino avulso:** adiciona exercícios escolhendo o tipo — `Reps`, `Tempo` (isometria em segundos) ou `Combo` (dois movimentos por série) — e os valores. Viram "Exercício 1", "Exercício 2"... Dá para adicionar mais com o treino já iniciado. Ao finalizar, é descartado.
 - **Tela do exercício:** nome, série atual (`SERIE 2 de 4`), alvo (`12 reps`, `30 seg` ou `20 + 10 reps`), bolinhas de progresso e botão `CHECK`. O botão azul `DESFAZER` volta uma série.
+- **Carga nos treinos salvos:** toque em `CARGA` na tela do exercício, ajuste em passos de 0,5 kg ou 5 kg e salve. O valor aparece na lista e permanece para os próximos treinos até ser alterado. Voltar a zero remove a carga. Treinos avulsos não usam esse cadastro.
 - **Reps/Combo:** um `CHECK` fecha a série.
 - **Tempo (isometria):** o `CHECK` inicia a contagem dos segundos e marca a série sozinho ao zerar (ou `Pronto` para marcar antes).
 - **Exercício concluído:** a última série retorna diretamente à lista, sem abrir o próximo exercício. É possível reabrir o exercício concluído para desfazer uma série; seu botão principal mostra `VOLTAR`.
@@ -23,6 +24,7 @@ Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um 
 |---|---|
 | `src/common/modelo.js` | Treinos salvos e funções puras (meta, alvo, sessão). Testável no Node. |
 | `src/common/picker.js` | Lógica do seletor (tipos, limites, montar exercício). Testável no Node. |
+| `src/common/cargas.js` | Chave, ajuste, limite e apresentação das cargas persistentes. |
 | `src/pages/index/index.ux` | Todas as telas, navegação interna, sessão no storage, descanso e isometria. |
 | `tests/modelo.test.mjs` | Testes das funções puras. |
 | `tests/fluxo.test.mjs` | Testes dos métodos da página com storage e relógio simulados. |
@@ -104,3 +106,9 @@ Costa/Ombro passa a ter Remada polia alta corda **4×12** e Banco lombar isometr
 O pacote é `dist/dev.rea.setgo.debug.0.2.6.rpk`. Os testes cobrem saída/retomada, reabertura pela lista, sessão inteiramente marcada, leitura atrasada, atualização das metas antigas e a navegação de volta, além dos fluxos anteriores.
 
 Os 18 testes passaram. No emulador, concluir o Puxador em 4/4, voltar aos treinos salvos e reabrir Costa/Ombro manteve a marcação. Após encerrar os processos do emulador e iniciá-lo novamente, a sessão abriu automaticamente com o mesmo 4/4. O Mi Fitness confirmou o envio da 0.2.6 (`发送文件成功`); a retomada no firmware da pulseira ainda deve ser conferida pelo usuário.
+
+### Cargas na versão 0.2.7
+
+Cada exercício dos três treinos salvos tem uma carga independente. O botão na tela do exercício abre um seletor com ajustes de 0,5 kg e 5 kg, limitado entre 0 e 500 kg. O valor usa uma chave formada pelo nome do treino e do exercício e fica no registro `setgo_cargas`, separado da sessão ativa. Portanto, concluir ou trocar um treino preserva as cargas. Salvar zero remove o valor daquele exercício.
+
+O pacote é `dist/dev.rea.setgo.debug.0.2.7.rpk`. Os 21 testes passaram, incluindo os quatro botões de ajuste, persistência após finalizar o treino, reabertura do app e remoção da carga ao voltar para zero. O seletor também foi conferido visualmente no emulador Vela em 336×480.
