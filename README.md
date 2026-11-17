@@ -1,6 +1,6 @@
 # SetGo
 
-A versão 0.2.7 (código 11) permite registrar e manter a carga de cada exercício dos treinos salvos pela própria pulseira.
+A versão 0.2.8 (código 12) permite registrar a carga em quilogramas ou pela quantidade de placas de cada aparelho.
 
 Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um Quick App em Vela JS (`.rpk`) e não depende do celular durante o treino.
 
@@ -9,7 +9,7 @@ Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um 
 - **Menu:** `Treino avulso` (monta na hora, sem virar modelo salvo) ou `Treinos salvos` (os 3 treinos fixos).
 - **Treino avulso:** adiciona exercícios escolhendo o tipo — `Reps`, `Tempo` (isometria em segundos) ou `Combo` (dois movimentos por série) — e os valores. Viram "Exercício 1", "Exercício 2"... Dá para adicionar mais com o treino já iniciado. Ao finalizar, é descartado.
 - **Tela do exercício:** nome, série atual (`SERIE 2 de 4`), alvo (`12 reps`, `30 seg` ou `20 + 10 reps`), bolinhas de progresso e botão `CHECK`. O botão azul `DESFAZER` volta uma série.
-- **Carga nos treinos salvos:** toque em `CARGA` na tela do exercício, ajuste em passos de 0,5 kg ou 5 kg e salve. O valor aparece na lista e permanece para os próximos treinos até ser alterado. Voltar a zero remove a carga. Treinos avulsos não usam esse cadastro.
+- **Carga nos treinos salvos:** toque em `CARGA`, escolha `KG` ou `PLACAS` e salve. Quilogramas usam passos de 0,5 ou 5; placas usam passos de 1 ou 5. O valor aparece na lista e permanece para os próximos treinos até ser alterado. Voltar a zero remove a carga. Treinos avulsos não usam esse cadastro.
 - **Reps/Combo:** um `CHECK` fecha a série.
 - **Tempo (isometria):** o `CHECK` inicia a contagem dos segundos e marca a série sozinho ao zerar (ou `Pronto` para marcar antes).
 - **Exercício concluído:** a última série retorna diretamente à lista, sem abrir o próximo exercício. É possível reabrir o exercício concluído para desfazer uma série; seu botão principal mostra `VOLTAR`.
@@ -112,3 +112,9 @@ Os 18 testes passaram. No emulador, concluir o Puxador em 4/4, voltar aos treino
 Cada exercício dos três treinos salvos tem uma carga independente. O botão na tela do exercício abre um seletor com ajustes de 0,5 kg e 5 kg, limitado entre 0 e 500 kg. O valor usa uma chave formada pelo nome do treino e do exercício e fica no registro `setgo_cargas`, separado da sessão ativa. Portanto, concluir ou trocar um treino preserva as cargas. Salvar zero remove o valor daquele exercício.
 
 O pacote é `dist/dev.rea.setgo.debug.0.2.7.rpk`. Os 21 testes passaram, incluindo os quatro botões de ajuste, persistência após finalizar o treino, reabertura do app e remoção da carga ao voltar para zero. O seletor também foi conferido visualmente no emulador Vela em 336×480.
+
+### Quilogramas e placas na versão 0.2.8
+
+O seletor permite escolher a unidade de cada exercício. Ao trocar entre `KG` e `PLACAS`, o valor temporário volta a zero para evitar uma conversão incorreta. Registros numéricos criados pela versão 0.2.7 são lidos automaticamente como quilogramas e continuam válidos.
+
+O pacote é `dist/dev.rea.setgo.debug.0.2.8.rpk`. Os 22 testes cobrem as duas unidades, singular e plural de placa, passos inteiros, migração das cargas antigas e persistência por exercício.

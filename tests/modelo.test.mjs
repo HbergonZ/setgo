@@ -76,7 +76,7 @@ test('montarEx monta por tipo com descanso de 30s', () => {
   assert.deepEqual(picker.montarEx('Exercício 3', 'combo', vals), { nome: 'Exercício 3', series: 3, tipo: 'combo', descanso: 30, a: 20, b: 10 })
 })
 
-test('carga usa chave estavel, meio quilo e limites seguros', () => {
+test('carga usa chave estavel, aceita kg e placas e migra valores antigos', () => {
   assert.equal(cargas.chaveCarga('Costa / Ombro', 'Puxador'), 'Costa / Ombro|Puxador')
   assert.equal(cargas.ajustarCarga(10, 0.5), 10.5)
   assert.equal(cargas.ajustarCarga(2, -5), 0)
@@ -84,4 +84,8 @@ test('carga usa chave estavel, meio quilo e limites seguros', () => {
   assert.equal(cargas.rotuloCarga(0), 'Sem carga')
   assert.equal(cargas.rotuloCarga(12.5), '12.5 kg')
   assert.equal(cargas.rotuloCarga(20), '20 kg')
+  assert.deepEqual(cargas.lerCarga(12.5), { valor: 12.5, unidade: 'kg' })
+  assert.deepEqual(cargas.criarCarga(8.4, 'placas'), { valor: 8, unidade: 'placas' })
+  assert.equal(cargas.rotuloCarga({ valor: 1, unidade: 'placas' }), '1 placa')
+  assert.equal(cargas.rotuloCarga({ valor: 8, unidade: 'placas' }), '8 placas')
 })

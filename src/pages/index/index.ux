@@ -95,11 +95,15 @@
     <div class="view center" if="{{ vista === 'carga' }}">
       <text class="pt">CARGA</text>
       <text class="carga-nome">{{ exNome }}</text>
+      <div class="carga-unidades">
+        <text class="carga-unidade {{ cargaUnidade === 'kg' ? 'carga-unidade-on' : '' }}" onclick="selecionarKg">KG</text>
+        <text class="carga-unidade {{ cargaUnidade === 'placas' ? 'carga-unidade-on' : '' }}" onclick="selecionarPlacas">PLACAS</text>
+      </div>
       <text class="carga-valor">{{ cargaRotulo }}</text>
       <div class="carga-row">
         <text class="carga-btn" onclick="cargaMenos5">-5</text>
-        <text class="carga-btn" onclick="cargaMenosMeio">-0.5</text>
-        <text class="carga-btn" onclick="cargaMaisMeio">+0.5</text>
+        <text class="carga-btn" onclick="cargaMenosMenor">{{ cargaMenosRotulo }}</text>
+        <text class="carga-btn" onclick="cargaMaisMenor">{{ cargaMaisRotulo }}</text>
         <text class="carga-btn" onclick="cargaMais5">+5</text>
       </div>
       <div class="prow carga-actions">
@@ -147,7 +151,7 @@ import vibrator from '@system.vibrator'
 import brightness from '@system.brightness'
 import { SALVOS, novaSessao, alvoEx, metaEx, nomeCompativel, atualizarSessaoSalva } from '../../common/modelo'
 import { LINHAS, valoresPadrao, ajustar, montarEx } from '../../common/picker'
-import { chaveCarga, normalizarCarga, ajustarCarga, rotuloCarga } from '../../common/cargas'
+import { chaveCarga, ajustarCarga, rotuloCarga, lerCarga, criarCarga } from '../../common/cargas'
 
 var CHAVE = 'setgo_sessao'
 var CHAVE_CARGAS = 'setgo_cargas'
@@ -185,6 +189,9 @@ export default {
     // exercicio
     exSit: '', exNome: '', exBig: '', exDen: '', exAlvo: '', exCarga: 'CARGA', exDots: [], exBotao: 'CHECK', exFim: false,
     cargaTemp: 0,
+    cargaUnidade: 'kg',
+    cargaMenosRotulo: '-0.5',
+    cargaMaisRotulo: '+0.5',
     cargaRotulo: 'Sem carga',
     // timers
     holdW: 0,
@@ -307,7 +314,7 @@ export default {
       var temCarga = false
       if (s.modo === 'salvo') {
         var carga = pagina.cargas[chaveCarga(nomeCompativel(s.nome), nomeCompativel(e.nome))]
-        if (normalizarCarga(carga) > 0) { prog += '\n' + rotuloCarga(carga); temCarga = true }
+        if (lerCarga(carga).valor > 0) { prog += '\n' + rotuloCarga(carga); temCarga = true }
       }
       return { nome: nomeCompativel(e.nome), prog: prog, progClasse: temCarga ? 'rprog-carga' : 'rprog', feito: s.done[i] >= e.series }
     })
@@ -358,7 +365,7 @@ export default {
     this.exAlvo = alvoEx(e)
     if (!this.ativoAvulso) {
       var chave = chaveCarga(this.ativoNome, this.exNome)
-      this.exCarga = normalizarCarga(this.cargas[chave]) > 0 ? rotuloCarga(this.cargas[chave]) : 'CARGA'
+      this.exCarga = lerCarga(this.cargas[chave]).valor > 0 ? rotuloCarga(this.cargas[chave]) : 'CARGA'
     }
     this.exFim = d >= e.series
     if (this.exFim) {
@@ -401,24 +408,35 @@ export default {
   abrirCarga() {
     if (this.ativoAvulso) return
     var chave = chaveCarga(this.ativoNome, this.exNome)
-    this.cargaTemp = normalizarCarga(this.cargas[chave])
-    this.cargaRotulo = rotuloCarga(this.cargaTemp)
+    var carga = lerCarga(this.cargas[chave])
+    this.cargaTemp = carga.valor
+    this.aplicarUnidadeCarga(carga.unidade)
+    this.atualizarRotuloCarga()
     this.vista = 'carga'
   },
+  aplicarUnidadeCarga(unidade) {
+    this.cargaUnidade = unidade === 'placas' ? 'placas' : 'kg'
+    this.cargaMenosRotulo = this.cargaUnidade === 'placas' ? '-1' : '-0.5'
+    this.cargaMaisRotulo = this.cargaUnidade === 'placas' ? '+1' : '+0.5'
+  },
+  atualizarRotuloCarga() { this.cargaRotulo = rotuloCarga({ valor: this.cargaTemp, unidade: this.cargaUnidade }) },
+  selecionarKg() { if (this.cargaUnidade !== 'kg') { this.cargaTemp = 0; this.aplicarUnidadeCarga('kg'); this.atualizarRotuloCarga() } },
+  selecionarPlacas() { if (this.cargaUnidade !== 'placas') { this.cargaTemp = 0; this.aplicarUnidadeCarga('placas'); this.atualizarRotuloCarga() } },
   ajustarCargaTela(delta) {
     this.cargaTemp = ajustarCarga(this.cargaTemp, delta)
-    this.cargaRotulo = rotuloCarga(this.cargaTemp)
+    if (this.cargaUnidade === 'placas') this.cargaTemp = Math.round(this.cargaTemp)
+    this.atualizarRotuloCarga()
   },
   cargaMenos5() { this.ajustarCargaTela(-5) },
-  cargaMenosMeio() { this.ajustarCargaTela(-0.5) },
-  cargaMaisMeio() { this.ajustarCargaTela(0.5) },
+  cargaMenosMenor() { this.ajustarCargaTela(this.cargaUnidade === 'placas' ? -1 : -0.5) },
+  cargaMaisMenor() { this.ajustarCargaTela(this.cargaUnidade === 'placas' ? 1 : 0.5) },
   cargaMais5() { this.ajustarCargaTela(5) },
   cancelarCarga() { this.vista = 'exercicio' },
   salvarCarga() {
     var chave = chaveCarga(this.ativoNome, this.exNome)
     var copia = {}
     for (var k in this.cargas) copia[k] = this.cargas[k]
-    if (this.cargaTemp > 0) copia[chave] = normalizarCarga(this.cargaTemp)
+    if (this.cargaTemp > 0) copia[chave] = criarCarga(this.cargaTemp, this.cargaUnidade)
     else delete copia[chave]
     this.cargas = copia
     this.persistirCargas()
@@ -571,9 +589,12 @@ export default {
 .holdfill { height: 4px; background-color: #ff7a2e; border-radius: 2px; }
 .saved-name { width: 96px; lines: 2; line-height: 20px; text-overflow: ellipsis; font-size: 16px; font-weight: bold; color: #ffffff; }
 .saved-count { width: 44px; margin-left: 14px; lines: 1; font-size: 12px; color: #8b9298; text-align: right; }
-.carga-nome { width: 184px; height: 46px; lines: 2; line-height: 21px; font-size: 18px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 8px; }
-.carga-valor { width: 184px; height: 54px; lines: 1; font-size: 34px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 4px; }
+.carga-nome { width: 184px; height: 42px; lines: 2; line-height: 19px; font-size: 17px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 4px; }
+.carga-unidades { width: 176px; height: 32px; flex-direction: row; justify-content: center; margin-top: 4px; }
+.carga-unidade { width: 82px; height: 28px; lines: 1; font-size: 13px; font-weight: bold; color: #b9bec3; text-align: center; background-color: #252a30; border-radius: 14px; margin-left: 3px; margin-right: 3px; }
+.carga-unidade-on { color: #111111; background-color: #ff7a2e; }
+.carga-valor { width: 184px; height: 46px; lines: 1; font-size: 29px; font-weight: bold; color: #ffffff; text-align: center; margin-top: 2px; }
 .carga-row { width: 188px; height: 40px; flex-direction: row; align-items: center; justify-content: center; margin-top: 6px; }
 .carga-btn { width: 42px; height: 34px; lines: 1; font-size: 16px; font-weight: bold; color: #ffffff; text-align: center; background-color: #33415a; border-radius: 17px; margin-left: 2px; margin-right: 2px; }
-.carga-actions { margin-top: 14px; }
+.carga-actions { margin-top: 10px; }
 </style>

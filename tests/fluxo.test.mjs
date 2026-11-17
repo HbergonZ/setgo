@@ -252,7 +252,7 @@ test('carga de treino salvo persiste separada da sessao ate ser alterada', () =>
   assert.equal(p.exCarga, 'CARGA')
   p.abrirCarga()
   p.cargaMais5()
-  p.cargaMaisMeio()
+  p.cargaMaisMenor()
   p.salvarCarga()
   assert.equal(p.exCarga, '5.5 kg')
   assert.match(p.treinoView[0].prog, /5\.5 kg/)
@@ -268,9 +268,28 @@ test('carga de treino salvo persiste separada da sessao ate ser alterada', () =>
   assert.equal(reaberta.exCarga, '5.5 kg')
   reaberta.abrirCarga()
   reaberta.cargaMenos5()
-  reaberta.cargaMenosMeio()
+  reaberta.cargaMenosMenor()
   reaberta.salvarCarga()
   assert.equal(reaberta.exCarga, 'CARGA')
+})
+
+test('exercicio salvo aceita placas com passos inteiros e persiste a unidade', () => {
+  const { pagina: p, dados } = abrir()
+  p.irSalvos()
+  p.abrirSalvo(1)
+  p.abrirExercicio(0)
+  p.abrirCarga()
+  p.selecionarPlacas()
+  p.cargaMais5()
+  p.cargaMaisMenor()
+  p.cargaMaisMenor()
+  assert.equal(p.cargaRotulo, '7 placas')
+  p.salvarCarga()
+  assert.equal(p.exCarga, '7 placas')
+  assert.match(p.treinoView[0].prog, /7 placas/)
+
+  const registro = Object.values(JSON.parse(dados.setgo_cargas))[0]
+  assert.deepEqual(registro, { valor: 7, unidade: 'placas' })
 })
 
 test('treino avulso nao oferece edicao de carga', () => {
