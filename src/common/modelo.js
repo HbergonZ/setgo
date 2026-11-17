@@ -1,6 +1,7 @@
-// Dados dos treinos salvos e funções puras de apoio, sem APIs do Vela, para rodar na pulseira e nos testes do Node.
+// Dados dos treinos salvos de exemplo e funções puras de apoio, sem APIs do Vela, para rodar na pulseira e nos testes do Node.
 // Cada exercício tem um tipo: 'reps' (repetições), 'tempo' (isometria em segundos) ou 'combo' (dois movimentos por série).
 
+// Treinos de exemplo. Edite esta lista para usar os seus; os testes conferem as metas definidas aqui.
 export var SALVOS = [
   { nome: 'Costa / Ombro', ex: [
     { nome: 'Puxador frente barra', series: 4, tipo: 'reps', reps: 12, descanso: 30 },

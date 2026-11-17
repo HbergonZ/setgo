@@ -6,7 +6,7 @@ Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um 
 
 ## Funções
 
-- **Menu:** `Treino avulso` (monta na hora, sem virar modelo salvo) ou `Treinos salvos` (os 3 treinos fixos).
+- **Menu:** `Treino avulso` (monta na hora, sem virar modelo salvo) ou `Treinos salvos` (os 3 treinos fixos). Os três treinos que acompanham o projeto são exemplos: edite a lista `SALVOS` em `src/common/modelo.js` para usar os seus.
 - **Treino avulso:** adiciona exercícios escolhendo o tipo — `Reps`, `Tempo` (isometria em segundos) ou `Combo` (dois movimentos por série) — e os valores. Viram "Exercício 1", "Exercício 2"... Dá para adicionar mais com o treino já iniciado. Ao finalizar, é descartado.
 - **Tela do exercício:** nome, série atual (`SERIE 2 de 4`), alvo (`12 reps`, `30 seg` ou `20 + 10 reps`), bolinhas de progresso e botão `CHECK`. O botão azul `DESFAZER` volta uma série.
 - **Carga nos treinos salvos:** toque em `CARGA`, escolha `KG` ou `PLACAS` e salve. Quilogramas usam passos de 0,5 ou 5; placas usam passos de 1 ou 5. O valor aparece na lista e permanece para os próximos treinos até ser alterado. Voltar a zero remove a carga. Treinos avulsos não usam esse cadastro.
@@ -22,7 +22,7 @@ Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um 
 
 | Caminho | Conteúdo |
 |---|---|
-| `src/common/modelo.js` | Treinos salvos e funções puras (meta, alvo, sessão). Testável no Node. |
+| `src/common/modelo.js` | Treinos salvos de exemplo e funções puras (meta, alvo, sessão). Testável no Node. |
 | `src/common/picker.js` | Lógica do seletor (tipos, limites, montar exercício). Testável no Node. |
 | `src/common/cargas.js` | Chave, ajuste, limite e apresentação das cargas persistentes. |
 | `src/pages/index/index.ux` | Todas as telas, navegação interna, sessão no storage, descanso e isometria. |
