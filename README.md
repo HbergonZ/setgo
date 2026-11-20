@@ -118,3 +118,9 @@ O pacote é `dist/dev.rea.setgo.debug.0.2.7.rpk`. Os 21 testes passaram, incluin
 O seletor permite escolher a unidade de cada exercício. Ao trocar entre `KG` e `PLACAS`, o valor temporário volta a zero para evitar uma conversão incorreta. Registros numéricos criados pela versão 0.2.7 são lidos automaticamente como quilogramas e continuam válidos.
 
 O pacote é `dist/dev.rea.setgo.debug.0.2.8.rpk`. Os 22 testes cobrem as duas unidades, singular e plural de placa, passos inteiros, migração das cargas antigas e persistência por exercício.
+
+## Atualização 0.2.9 - tela antes do início
+
+A tela pode apagar normalmente nos menus e antes de iniciar o treino ou a partida. Durante a atividade, o app mantém a tela acesa; ao sair, libera o bloqueio de tela. No SetGO, retornar à lista de treinos salvos ou finalizar também libera a tela.
+
+Validação em 19/11/2026: 24 testes passaram; RPK gerado com sucesso (o toolkit retornou EBUSY apenas na limpeza final); instalação pelo Gadgetbridge concluída em 100%. O tempo real para apagar a tela ainda precisa ser conferido na pulseira.

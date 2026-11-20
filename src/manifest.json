@@ -1,8 +1,8 @@
 {
   "package": "dev.rea.setgo",
   "name": "SetGo",
-  "versionName": "0.2.8",
-  "versionCode": 12,
+  "versionName": "0.2.9",
+  "versionCode": 13,
   "minPlatformVersion": 1000,
   "minAPILevel": 1,
   "icon": "/common/icon.png",

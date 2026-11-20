@@ -20,6 +20,7 @@ function abrir(salvo, opcoes = {}) {
   const timers = new Map()
   const dados = { setgo_sessao: salvo, setgo_cargas: opcoes.cargas }
   const leituras = []
+  const tela = []
   const contexto = vm.createContext({
     ...modelo, ...picker, ...cargas,
     storage: {
@@ -31,7 +32,7 @@ function abrir(salvo, opcoes = {}) {
       set({ key, value }) { dados[key] = value },
       delete({ key }) { delete dados[key] }
     },
-    vibrator: { vibrate() {} }, brightness: { setKeepScreenOn() {} },
+    vibrator: { vibrate() {} }, brightness: { setKeepScreenOn({ keepScreenOn }) { tela.push(keepScreenOn) } },
     Date: { now: () => agora },
     setInterval(fn) { timers.set(++id, fn); return id },
     clearInterval(id) { timers.delete(id) }
@@ -41,7 +42,7 @@ function abrir(salvo, opcoes = {}) {
   Object.assign(pagina, pagina.private)
   pagina.onInit()
   return {
-    pagina, dados, timers, concluirLeitura: () => { for (const concluir of leituras) concluir() },
+    pagina, dados, timers, tela, concluirLeitura: () => { for (const concluir of leituras) concluir() },
     passar(ms) { agora += ms; for (const fn of [...timers.values()]) fn() }
   }
 }
@@ -297,4 +298,49 @@ test('treino avulso nao oferece edicao de carga', () => {
   avulso(p)
   p.abrirCarga()
   assert.equal(p.vista, 'exercicio')
+})
+
+
+test('tela apaga antes do treino, nos menus e ao sair; permanece acesa durante treino', () => {
+  const { pagina: p, tela } = abrir()
+  p.onShow()
+  assert.equal(tela.at(-1), false)
+  p.irBuilder()
+  p.abrirPickerBuilder()
+  assert.equal(tela.at(-1), false)
+  p.addPicker()
+  p.iniciarAvulso()
+  assert.equal(tela.at(-1), true)
+  p.abrirExercicio(0)
+  p.checar()
+  assert.equal(p.vista, 'descanso')
+  assert.equal(tela.at(-1), true)
+  p.onHide()
+  assert.equal(tela.at(-1), false)
+  p.onShow()
+  assert.equal(tela.at(-1), true)
+  p.pularRest()
+  p.finalizar()
+  assert.equal(tela.at(-1), false)
+  p.voltarMenu()
+  p.irSalvos()
+  assert.equal(tela.at(-1), false)
+  p.abrirSalvo(0)
+  assert.equal(tela.at(-1), true)
+  p.onBackPress()
+  assert.equal(p.vista, 'salvos')
+  assert.equal(tela.at(-1), false)
+  p.onDestroy()
+})
+
+test('sessao carregada depois de onShow ativa a tela apenas enquanto visivel', () => {
+  const salvo = JSON.stringify(modelo.novaSessao(modelo.SALVOS[0], 'salvo'))
+  for (const oculto of [false, true]) {
+    const { pagina: p, tela, concluirLeitura } = abrir(salvo, { leituraAdiada: true })
+    p.onShow()
+    if (oculto) p.onHide()
+    concluirLeitura()
+    assert.equal(tela.at(-1), !oculto)
+    p.onDestroy()
+  }
 })

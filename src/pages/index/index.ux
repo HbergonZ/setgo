@@ -173,6 +173,7 @@ export default {
     carregandoSessao: true,
     cargas: {},
     salvosView: [],
+    telaVisivel: false,
     draft: [],
     // picker
     tipo: 'reps',
@@ -218,7 +219,7 @@ export default {
             pagina.ativo = atualizarSessaoSalva(s)
             pagina.temSessao = true
             pagina.setAtivo(pagina.ativo)
-            pagina.vista = 'treino'
+            pagina.mudarVista('treino')
             pagina.salvar()
           }
           pronto()
@@ -243,22 +244,28 @@ export default {
       })
     } catch (e) { pronto() }
   },
-  onShow() { try { brightness.setKeepScreenOn({ keepScreenOn: true }) } catch (e) {} },
-  onHide() { this.salvar(); this.holdEnd(); try { brightness.setKeepScreenOn({ keepScreenOn: false }) } catch (e) {} },
-  onDestroy() { this.salvar(); this.pararTimers(); this.pararHold() },
+  onShow() { this.telaVisivel = true; this.atualizarTela() },
+  onHide() { this.telaVisivel = false; this.atualizarTela(); this.salvar(); this.holdEnd() },
+  onDestroy() { this.telaVisivel = false; this.atualizarTela(); this.salvar(); this.pararTimers(); this.pararHold() },
+
+  mudarVista(vista) { this.vista = vista; this.atualizarTela() },
+  atualizarTela() {
+    var emTreino = ['treino', 'exercicio', 'carga', 'descanso', 'tempo'].indexOf(this.vista) >= 0 || (this.vista === 'picker' && this.pickFrom === 'treino')
+    try { brightness.setKeepScreenOn({ keepScreenOn: this.telaVisivel && emTreino }) } catch (e) {}
+  },
 
   // Botao voltar: navega dentro do app; no menu, deixa sair.
   onBackPress() {
     var v = this.vista
     if (v === 'menu') return false
-    if (v === 'exercicio') { this.vista = 'treino'; this.montarTreinoView() }
-    else if (v === 'carga') { this.vista = 'exercicio' }
-    else if (v === 'picker') { this.vista = this.pickFrom }
+    if (v === 'exercicio') { this.mudarVista('treino'); this.montarTreinoView() }
+    else if (v === 'carga') { this.mudarVista('exercicio') }
+    else if (v === 'picker') { this.mudarVista(this.pickFrom) }
     else if (v === 'descanso') { this.pularRest() }
     else if (v === 'tempo') { this.cancelarTempo() }
     else if (v === 'concluido') { this.voltarMenu() }
-    else if (v === 'treino' && this.ativo && this.ativo.modo === 'salvo') { this.vista = 'salvos' }
-    else { this.vista = 'menu' }
+    else if (v === 'treino' && this.ativo && this.ativo.modo === 'salvo') { this.mudarVista('salvos') }
+    else { this.mudarVista('menu') }
     return true
   },
 
@@ -270,9 +277,9 @@ export default {
   persistirCargas() { try { storage.set({ key: CHAVE_CARGAS, value: JSON.stringify(this.cargas) }) } catch (e) {} },
 
   // ---- Navegacao ----
-  irBuilder() { if (this.carregandoSessao) return; this.draft = []; this.vista = 'builder' },
-  irSalvos() { if (!this.carregandoSessao) this.vista = 'salvos' },
-  continuar() { if (!this.ativo || this.carregandoSessao) return; this.setAtivo(this.ativo); this.vista = 'treino' },
+  irBuilder() { if (this.carregandoSessao) return; this.draft = []; this.mudarVista('builder') },
+  irSalvos() { if (!this.carregandoSessao) this.mudarVista('salvos') },
+  continuar() { if (!this.ativo || this.carregandoSessao) return; this.setAtivo(this.ativo); this.mudarVista('treino') },
 
   abrirSalvo(i) {
     if (this.carregandoSessao) return
@@ -280,13 +287,13 @@ export default {
       this.ativo = atualizarSessaoSalva(this.ativo)
       this.setAtivo(this.ativo)
       this.salvar()
-      this.vista = 'treino'
+      this.mudarVista('treino')
       return
     }
     this.ativo = novaSessao(SALVOS[i], 'salvo')
     this.salvar(); this.temSessao = true
     this.setAtivo(this.ativo)
-    this.vista = 'treino'
+    this.mudarVista('treino')
   },
   iniciarAvulso() {
     if (this.carregandoSessao) return
@@ -299,7 +306,7 @@ export default {
     this.ativo = novaSessao({ nome: 'Treino avulso', ex: limpos }, 'avulso')
     this.salvar(); this.temSessao = true
     this.setAtivo(this.ativo)
-    this.vista = 'treino'
+    this.mudarVista('treino')
   },
   setAtivo(s) {
     this.ativoNome = nomeCompativel(s.nome)
@@ -333,31 +340,31 @@ export default {
     this.vals = valoresPadrao()
     this.pickTitulo = 'Exercicio ' + (qtd + 1)
     this.montarLinhas()
-    this.vista = 'picker'
+    this.mudarVista('picker')
   },
   abrirPickerBuilder() { this.abrirPicker('builder', this.draft.length) },
   abrirPickerTreino() { this.abrirPicker('treino', this.ativo.ex.length) },
   setTipo(t) { this.tipo = t; this.montarLinhas() },
   passo(chave, delta) { this.vals[chave] = ajustar(this.vals[chave], chave, delta); this.montarLinhas() },
-  cancelarPicker() { this.vista = this.pickFrom },
+  cancelarPicker() { this.mudarVista(this.pickFrom) },
   addPicker() {
     if (this.pickFrom === 'builder') {
       var ex = montarEx('Exercicio ' + (this.draft.length + 1), this.tipo, this.vals)
       ex.rotulo = metaEx(ex)
       this.draft = this.draft.concat([ex])
-      this.vista = 'builder'
+      this.mudarVista('builder')
     } else {
       var ex2 = montarEx('Exercicio ' + (this.ativo.ex.length + 1), this.tipo, this.vals)
       this.ativo.ex.push(ex2)
       this.ativo.done.push(0)
       this.salvar()
       this.montarTreinoView()
-      this.vista = 'treino'
+      this.mudarVista('treino')
     }
   },
 
   // ---- Exercicio ----
-  abrirExercicio(i) { this.curEx = i; this.renderEx(); this.vista = 'exercicio' },
+  abrirExercicio(i) { this.curEx = i; this.renderEx(); this.mudarVista('exercicio') },
   renderEx() {
     var e = this.ativo.ex[this.curEx]
     var d = this.ativo.done[this.curEx]
@@ -384,7 +391,7 @@ export default {
   checar() {
     var e = this.ativo.ex[this.curEx]
     if (this.ativo.done[this.curEx] >= e.series) {
-      this.montarTreinoView(); this.vista = 'treino'
+      this.montarTreinoView(); this.mudarVista('treino')
       return
     }
     if (e.tipo === 'tempo') this.iniciarTempo(e.seg)
@@ -392,13 +399,13 @@ export default {
   },
   concluirSerie() {
     var e = this.ativo.ex[this.curEx]
-    this.vista = 'exercicio'
+    this.mudarVista('exercicio')
     this.ativo.done[this.curEx]++
     this.salvar()
     this.renderEx()
     this.montarTreinoView()
     if (this.ativo.done[this.curEx] < e.series) { vibrar('short'); this.iniciarDescanso(e.descanso) }
-    else { vibrar('long'); this.vista = 'treino' }
+    else { vibrar('long'); this.mudarVista('treino') }
   },
   desfazer() {
     if (this.ativo.done[this.curEx] > 0) { this.ativo.done[this.curEx]--; this.salvar(); this.renderEx(); this.montarTreinoView() }
@@ -412,7 +419,7 @@ export default {
     this.cargaTemp = carga.valor
     this.aplicarUnidadeCarga(carga.unidade)
     this.atualizarRotuloCarga()
-    this.vista = 'carga'
+    this.mudarVista('carga')
   },
   aplicarUnidadeCarga(unidade) {
     this.cargaUnidade = unidade === 'placas' ? 'placas' : 'kg'
@@ -431,7 +438,7 @@ export default {
   cargaMenosMenor() { this.ajustarCargaTela(this.cargaUnidade === 'placas' ? -1 : -0.5) },
   cargaMaisMenor() { this.ajustarCargaTela(this.cargaUnidade === 'placas' ? 1 : 0.5) },
   cargaMais5() { this.ajustarCargaTela(5) },
-  cancelarCarga() { this.vista = 'exercicio' },
+  cancelarCarga() { this.mudarVista('exercicio') },
   salvarCarga() {
     var chave = chaveCarga(this.ativoNome, this.exNome)
     var copia = {}
@@ -442,7 +449,7 @@ export default {
     this.persistirCargas()
     this.renderEx()
     this.montarTreinoView()
-    this.vista = 'exercicio'
+    this.mudarVista('exercicio')
   },
 
   // ---- Isometria ----
@@ -451,7 +458,7 @@ export default {
     this.pararTimers()
     this.tempoNum = seg
     this.tempoW = LARGURA_BAR
-    this.vista = 'tempo'
+    this.mudarVista('tempo')
     var total = seg
     var inicio = Date.now()
     tempoTimer = setInterval(function () {
@@ -461,7 +468,7 @@ export default {
     }, 100)
   },
   prontoTempo() { this.pararTimers(); this.concluirSerie() },
-  cancelarTempo() { this.pararTimers(); this.vista = 'exercicio' },
+  cancelarTempo() { this.pararTimers(); this.mudarVista('exercicio') },
 
   // ---- Descanso ----
   iniciarDescanso(seg) {
@@ -470,15 +477,15 @@ export default {
     this.restTotal = seg
     this.restNum = seg
     this.restW = LARGURA_BAR
-    this.vista = 'descanso'
+    this.mudarVista('descanso')
     restTimer = setInterval(function () {
       pagina.restNum--
       pagina.restW = Math.round(pagina.restNum / pagina.restTotal * LARGURA_BAR)
-      if (pagina.restNum <= 0) { pagina.pararTimers(); vibrar('long'); pagina.vista = 'exercicio' }
+      if (pagina.restNum <= 0) { pagina.pararTimers(); vibrar('long'); pagina.mudarVista('exercicio') }
     }, 1000)
   },
   mais15() { this.restNum += 15; this.restTotal += 15; this.restW = Math.round(this.restNum / this.restTotal * LARGURA_BAR) },
-  pularRest() { this.pararTimers(); this.vista = 'exercicio' },
+  pularRest() { this.pararTimers(); this.mudarVista('exercicio') },
 
   pararTimers() {
     if (restTimer !== null) { clearInterval(restTimer); restTimer = null }
@@ -501,14 +508,14 @@ export default {
   finalizar() {
     this.apagar()
     this.conclSub = this.ativoAvulso ? 'Treino avulso descartado.' : this.ativoNome + ' concluido.'
-    this.vista = 'concluido'
+    this.mudarVista('concluido')
   },
   voltarMenu() {
     this.apagar()
     this.ativo = null
     this.temSessao = false
     this.holdW = 0
-    this.vista = 'menu'
+    this.mudarVista('menu')
   }
 }
 </script>
