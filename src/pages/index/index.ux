@@ -70,6 +70,7 @@
       <text class="finish" ontouchstart="holdStart" ontouchend="holdEnd" ontouchcancel="holdEnd">FINALIZAR</text>
       <div class="holdbar"><div class="holdfill" style="width: {{ holdW }}px"></div></div>
       <text class="hint">segure para finalizar</text>
+      <text class="pausar" onclick="pausarESair">PAUSAR / SAIR</text>
     </div>
 
     <!-- EXERCICIO -->
@@ -147,6 +148,7 @@
 
 <script>
 import storage from '@system.storage'
+import app from '@system.app'
 import vibrator from '@system.vibrator'
 import brightness from '@system.brightness'
 import { SALVOS, novaSessao, alvoEx, metaEx, nomeCompativel, atualizarSessaoSalva } from '../../common/modelo'
@@ -219,7 +221,7 @@ export default {
             pagina.ativo = atualizarSessaoSalva(s)
             pagina.temSessao = true
             pagina.setAtivo(pagina.ativo)
-            pagina.mudarVista('treino')
+            pagina.ativo.retomada = s.retomada || null
             pagina.salvar()
           }
           pronto()
@@ -244,11 +246,21 @@ export default {
       })
     } catch (e) { pronto() }
   },
-  onShow() { this.telaVisivel = true; this.atualizarTela() },
-  onHide() { this.telaVisivel = false; this.atualizarTela(); this.salvar(); this.holdEnd() },
+  onShow() {
+    this.telaVisivel = true
+    if (this.vista === 'descanso') this.iniciarDescanso(this.restNum, this.restTotal)
+    else if (this.vista === 'tempo') this.iniciarTempo(this.tempoNum)
+    this.atualizarTela()
+  },
+  onHide() { this.telaVisivel = false; this.atualizarTela(); this.salvar(); this.pararTimers(); this.holdEnd() },
   onDestroy() { this.telaVisivel = false; this.atualizarTela(); this.salvar(); this.pararTimers(); this.pararHold() },
 
-  mudarVista(vista) { this.vista = vista; this.atualizarTela() },
+  mudarVista(vista) {
+    if (vista === 'menu' || vista === 'salvos' || vista === 'builder') this.salvar()
+    this.vista = vista
+    this.atualizarTela()
+    this.salvar()
+  },
   atualizarTela() {
     var emTreino = ['treino', 'exercicio', 'carga', 'descanso', 'tempo'].indexOf(this.vista) >= 0 || (this.vista === 'picker' && this.pickFrom === 'treino')
     try { brightness.setKeepScreenOn({ keepScreenOn: this.telaVisivel && emTreino }) } catch (e) {}
@@ -269,8 +281,19 @@ export default {
     return true
   },
 
+  pausarESair() {
+    this.onHide()
+    if (!this.ativo) { app.terminate(); return }
+    try {
+      storage.set({ key: CHAVE, value: JSON.stringify(this.ativo), success: function () { app.terminate() } })
+    } catch (e) {}
+  },
+
   salvar() {
     if (!this.ativo || this.vista === 'concluido') return
+    if (['treino', 'exercicio', 'carga', 'descanso', 'tempo'].indexOf(this.vista) >= 0) {
+      this.ativo.retomada = { vista: this.vista === 'carga' ? 'exercicio' : this.vista, curEx: this.curEx, restNum: this.restNum, restTotal: this.restTotal, tempoNum: this.tempoNum }
+    }
     try { storage.set({ key: CHAVE, value: JSON.stringify(this.ativo) }) } catch (e) {}
   },
   apagar() { try { storage.delete({ key: CHAVE }) } catch (e) {} },
@@ -279,12 +302,24 @@ export default {
   // ---- Navegacao ----
   irBuilder() { if (this.carregandoSessao) return; this.draft = []; this.mudarVista('builder') },
   irSalvos() { if (!this.carregandoSessao) this.mudarVista('salvos') },
-  continuar() { if (!this.ativo || this.carregandoSessao) return; this.setAtivo(this.ativo); this.mudarVista('treino') },
+  continuar() {
+    if (!this.ativo || this.carregandoSessao) return
+    var r = this.ativo.retomada
+    this.setAtivo(this.ativo)
+    if (!r || r.curEx < 0 || r.curEx >= this.ativo.ex.length) { this.mudarVista('treino'); return }
+    this.curEx = r.curEx
+    this.renderEx()
+    if (r.vista === 'descanso' && r.restNum > 0) this.iniciarDescanso(r.restNum, r.restTotal)
+    else if (r.vista === 'tempo' && r.tempoNum > 0) this.iniciarTempo(r.tempoNum)
+    else this.mudarVista(r.vista === 'exercicio' ? 'exercicio' : 'treino')
+  },
 
   abrirSalvo(i) {
     if (this.carregandoSessao) return
     if (this.ativo && this.ativo.modo === 'salvo' && nomeCompativel(this.ativo.nome) === SALVOS[i].nome) {
+      var retomada = this.ativo.retomada
       this.ativo = atualizarSessaoSalva(this.ativo)
+      this.ativo.retomada = retomada
       this.setAtivo(this.ativo)
       this.salvar()
       this.mudarVista('treino')
@@ -471,12 +506,12 @@ export default {
   cancelarTempo() { this.pararTimers(); this.mudarVista('exercicio') },
 
   // ---- Descanso ----
-  iniciarDescanso(seg) {
+  iniciarDescanso(seg, total) {
     var pagina = this
     this.pararTimers()
-    this.restTotal = seg
+    this.restTotal = total || seg
     this.restNum = seg
-    this.restW = LARGURA_BAR
+    this.restW = Math.round(seg / this.restTotal * LARGURA_BAR)
     this.mudarVista('descanso')
     restTimer = setInterval(function () {
       pagina.restNum--
@@ -589,8 +624,9 @@ export default {
 .verde { color: #58d06a; }
 .csub { font-size: 16px; color: #8b9298; text-align: center; margin-top: 8px; }
 .builder-list { height: 136px; }
-.treino-list { height: 154px; }
-.treino-list-avulso { height: 110px; }
+.treino-list { height: 122px; }
+.treino-list-avulso { height: 78px; }
+.pausar { width: 154px; height: 28px; margin-top: 4px; font-size: 15px; color: #ffffff; text-align: center; background-color: #24466b; border-radius: 14px; }
 .finish { width: 154px; height: 32px; margin-top: 6px; font-size: 16px; font-weight: bold; color: #ff7a2e; text-align: center; background-color: #24201c; border-radius: 16px; }
 .holdbar { width: 154px; height: 4px; margin-top: 5px; background-color: #22262a; border-radius: 2px; flex-direction: row; }
 .holdfill { height: 4px; background-color: #ff7a2e; border-radius: 2px; }

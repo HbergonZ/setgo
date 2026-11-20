@@ -15,7 +15,7 @@ Contador de séries de treino que roda direto na Xiaomi Smart Band 8 Pro. É um 
 - **Exercício concluído:** a última série retorna diretamente à lista, sem abrir o próximo exercício. É possível reabrir o exercício concluído para desfazer uma série; seu botão principal mostra `VOLTAR`.
 - **Descanso:** 30s por padrão entre as séries, com `+15s` e `Pular`, vibrando ao zerar.
 - **Finalizar:** segure o botão `FINALIZAR` até a barra encher, para confirmar.
-- O treino em andamento fica salvo (`@system.storage`); ao reabrir, o app retoma automaticamente sua lista com as marcações. O menu também oferece `CONTINUAR TREINO` enquanto há sessão ativa.
+- O treino em andamento fica salvo (`@system.storage`). Ao reabrir, o app mostra o menu com `CONTINUAR TREINO`, que recupera o exercício, as marcações e o contador pausado.
 - Mantém a tela acesa durante o treino.
 
 ## Estrutura
@@ -124,3 +124,9 @@ O pacote é `dist/dev.rea.setgo.debug.0.2.8.rpk`. Os 22 testes cobrem as duas un
 A tela pode apagar normalmente nos menus e antes de iniciar o treino ou a partida. Durante a atividade, o app mantém a tela acesa; ao sair, libera o bloqueio de tela. No SetGO, retornar à lista de treinos salvos ou finalizar também libera a tela.
 
 Validação em 19/11/2026: 24 testes passaram; RPK gerado com sucesso (o toolkit retornou EBUSY apenas na limpeza final); instalação pelo Gadgetbridge concluída em 100%. O tempo real para apagar a tela ainda precisa ser conferido na pulseira.
+
+## Versão 0.3.0 - entrada e pausa
+
+O app abre no menu, sem entrar automaticamente no último treino. CONTINUAR TREINO recupera o ponto salvo. A lista de exercícios oferece PAUSAR / SAIR: salva antes de encerrar o app para permitir abrir os controles de música. Descanso e isometria pausam fora da tela, sem concluir séries durante a ausência. Cargas e marcações permanecem salvas. Sessões antigas continuam compatíveis.
+
+Validação: 27 testes passaram, incluindo leitura atrasada, saída e reabertura, pausa dos contadores e finalização sem recriar a sessão. O RPK foi gerado (EBUSY apenas na limpeza final) e o Gadgetbridge registrou instalação concluída em 100%. Falta validar o botão e a retomada na pulseira física.

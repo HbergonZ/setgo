@@ -21,15 +21,17 @@ function abrir(salvo, opcoes = {}) {
   const dados = { setgo_sessao: salvo, setgo_cargas: opcoes.cargas }
   const leituras = []
   const tela = []
+  const saidas = []
   const contexto = vm.createContext({
     ...modelo, ...picker, ...cargas,
+    app: { terminate() { saidas.push(true) } },
     storage: {
       get({ key, success, fail }) {
         const concluir = () => opcoes.falhaLeitura ? fail() : success(dados[key])
         leituras.push(concluir)
         if (!opcoes.leituraAdiada) concluir()
       },
-      set({ key, value }) { dados[key] = value },
+      set({ key, value, success }) { dados[key] = value; if (success) success() },
       delete({ key }) { delete dados[key] }
     },
     vibrator: { vibrate() {} }, brightness: { setKeepScreenOn({ keepScreenOn }) { tela.push(keepScreenOn) } },
@@ -42,7 +44,7 @@ function abrir(salvo, opcoes = {}) {
   Object.assign(pagina, pagina.private)
   pagina.onInit()
   return {
-    pagina, dados, timers, tela, concluirLeitura: () => { for (const concluir of leituras) concluir() },
+    pagina, dados, timers, tela, saidas, concluirLeitura: () => { for (const concluir of leituras) concluir() },
     passar(ms) { agora += ms; for (const fn of [...timers.values()]) fn() }
   }
 }
@@ -108,7 +110,7 @@ test('sessao persiste e continua depois de reabrir', () => {
   const { pagina: reaberta } = abrir(dados.setgo_sessao)
   assert.equal(reaberta.temSessao, true)
   reaberta.continuar()
-  assert.equal(reaberta.vista, 'treino')
+  assert.equal(reaberta.vista, 'descanso')
   assert.equal(reaberta.treinoView[0].prog, '1/2')
 })
 
@@ -143,7 +145,7 @@ test('retomar sessao das versoes acentuadas mostra nomes legiveis sem perder pro
   assert.equal(p.ativo.done[2], 1)
 })
 
-test('treino salvo retoma automaticamente e reabrir pela lista nao zera marcacoes', () => {
+test('treino salvo abre no menu e reabrir pela lista nao zera marcacoes', () => {
   const { pagina: p, dados } = abrir()
   p.abrirSalvo(0)
   p.abrirExercicio(0)
@@ -154,6 +156,8 @@ test('treino salvo retoma automaticamente e reabrir pela lista nao zera marcacoe
   p.onHide()
   p.onDestroy()
   const { pagina: reaberta } = abrir(dados.setgo_sessao)
+  assert.equal(reaberta.vista, 'menu')
+  reaberta.continuar()
   assert.equal(reaberta.vista, 'treino')
   assert.equal(reaberta.treinoView[0].feito, true)
   assert.equal(reaberta.treinoView[0].prog, '4/4')
@@ -171,8 +175,9 @@ test('todas as series marcadas permanecem ate confirmar FINALIZAR', () => {
   const s = modelo.novaSessao(modelo.SALVOS[1], 'salvo')
   s.done = s.ex.map(e => e.series)
   const { pagina: p, dados } = abrir(JSON.stringify(s))
-  assert.equal(p.vista, 'treino')
+  assert.equal(p.vista, 'menu')
   assert.equal(p.temSessao, true)
+  p.continuar()
   assert.equal(p.treinoView.every(e => e.feito), true)
   p.finalizar()
   p.onHide()
@@ -208,7 +213,7 @@ test('leitura atrasada nao permite sobrescrever a sessao ao tocar em outro trein
   assert.equal(p.vista, 'menu')
   concluirLeitura()
   assert.equal(p.carregandoSessao, false)
-  assert.equal(p.vista, 'treino')
+  assert.equal(p.vista, 'menu')
   assert.equal(p.ativo.done[0], 3)
 })
 
@@ -333,14 +338,82 @@ test('tela apaga antes do treino, nos menus e ao sair; permanece acesa durante t
   p.onDestroy()
 })
 
-test('sessao carregada depois de onShow ativa a tela apenas enquanto visivel', () => {
+test('sessao carregada depois de onShow permanece no menu com tela liberada', () => {
   const salvo = JSON.stringify(modelo.novaSessao(modelo.SALVOS[0], 'salvo'))
   for (const oculto of [false, true]) {
     const { pagina: p, tela, concluirLeitura } = abrir(salvo, { leituraAdiada: true })
     p.onShow()
     if (oculto) p.onHide()
     concluirLeitura()
-    assert.equal(tela.at(-1), !oculto)
+    assert.equal(tela.at(-1), false)
+    assert.equal(p.vista, 'menu')
     p.onDestroy()
   }
+})
+
+
+test('sair para musica pausa descanso e continuar restaura exercicio e segundos', () => {
+  const { pagina: p, dados, passar, timers } = abrir()
+  p.onShow()
+  p.abrirSalvo(1)
+  p.abrirExercicio(3)
+  p.checar()
+  passar(1000)
+  p.onHide()
+  const segundos = p.restNum
+  assert.equal(timers.size, 0)
+  passar(120000)
+  assert.equal(p.restNum, segundos)
+  p.onShow()
+  assert.equal(p.vista, 'descanso')
+  assert.equal(p.curEx, 3)
+  assert.equal(p.restNum, segundos)
+  passar(1000)
+  assert.equal(p.restNum, segundos - 1)
+  p.onHide()
+  p.onDestroy()
+  const { pagina: nova } = abrir(dados.setgo_sessao)
+  assert.equal(nova.vista, 'menu')
+  nova.continuar()
+  assert.equal(nova.vista, 'descanso')
+  assert.equal(nova.curEx, 3)
+  assert.equal(nova.restNum, segundos - 1)
+  assert.equal(nova.ativo.done[3], 1)
+})
+
+test('isometria interrompida nao conclui serie fora do app e retoma o restante', () => {
+  const { pagina: p, dados, passar } = abrir()
+  p.onShow()
+  avulso(p, 'tempo', 1)
+  p.checar()
+  passar(3000)
+  p.onHide()
+  passar(60000)
+  assert.equal(p.ativo.done[0], 0)
+  p.onDestroy()
+  const { pagina: nova, passar: avancar } = abrir(dados.setgo_sessao)
+  nova.onShow()
+  nova.continuar()
+  assert.equal(nova.vista, 'tempo')
+  assert.equal(nova.tempoNum, 7)
+  avancar(7000)
+  assert.equal(nova.ativo.done[0], 1)
+  assert.equal(nova.vista, 'treino')
+})
+
+
+test('pausar e sair salva antes de encerrar e nao finaliza o treino', () => {
+  const { pagina: p, dados, saidas } = abrir()
+  p.onShow()
+  p.abrirSalvo(0)
+  p.abrirExercicio(1)
+  p.checar()
+  p.pausarESair()
+  assert.equal(saidas.length, 1)
+  const { pagina: nova } = abrir(dados.setgo_sessao)
+  assert.equal(nova.vista, 'menu')
+  nova.continuar()
+  assert.equal(nova.vista, 'descanso')
+  assert.equal(nova.curEx, 1)
+  assert.equal(nova.ativo.done[1], 1)
 })
