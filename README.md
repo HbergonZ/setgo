@@ -130,3 +130,11 @@ Validação em 19/11/2026: 24 testes passaram; RPK gerado com sucesso (o toolkit
 O app abre no menu, sem entrar automaticamente no último treino. CONTINUAR TREINO recupera o ponto salvo. A lista de exercícios oferece PAUSAR / SAIR: salva antes de encerrar o app para permitir abrir os controles de música. Descanso e isometria pausam fora da tela, sem concluir séries durante a ausência. Cargas e marcações permanecem salvas. Sessões antigas continuam compatíveis.
 
 Validação: 27 testes passaram, incluindo leitura atrasada, saída e reabertura, pausa dos contadores e finalização sem recriar a sessão. O RPK foi gerado (EBUSY apenas na limpeza final) e o Gadgetbridge registrou instalação concluída em 100%. Falta validar o botão e a retomada na pulseira física.
+
+## Versão 0.3.1 - finalizar e confirmar isometria
+
+Na lista de exercícios, PAUSAR / SAIR aparece enquanto houver séries pendentes. Quando todos os exercícios estiverem completos, FINALIZAR substitui esse botão e mantém a confirmação por pressão longa. Desfazer uma série volta a oferecer PAUSAR / SAIR. A área liberada pelos botões condicionais foi devolvida à lista.
+
+Ao zerar a isometria, o app vibra e mostra TEMPO CONCLUIDO com OK, sem iniciar o descanso. O OK registra a série e inicia o descanso quando ainda há outra série; na última, retorna à lista. O fim do descanso também vibra. A espera pelo OK persiste ao sair e reabrir, sem repetir a série nem contar descanso antes da confirmação.
+
+Validação em 20/11/2026: 29 testes passaram e o build terminou com sucesso. O Gadgetbridge confirmou a instalação do RPK em 100%. Vibração, toque e layout ainda precisam de validação física pelo usuário.

@@ -67,10 +67,10 @@
         </list-item>
       </list>
       <text class="add" if="{{ ativoAvulso }}" onclick="abrirPickerTreino">+ Adicionar</text>
-      <text class="finish" ontouchstart="holdStart" ontouchend="holdEnd" ontouchcancel="holdEnd">FINALIZAR</text>
-      <div class="holdbar"><div class="holdfill" style="width: {{ holdW }}px"></div></div>
-      <text class="hint">segure para finalizar</text>
-      <text class="pausar" onclick="pausarESair">PAUSAR / SAIR</text>
+      <text class="finish" if="{{ treinoCompleto }}" ontouchstart="holdStart" ontouchend="holdEnd" ontouchcancel="holdEnd">FINALIZAR</text>
+      <div class="holdbar" if="{{ treinoCompleto }}"><div class="holdfill" style="width: {{ holdW }}px"></div></div>
+      <text class="hint" if="{{ treinoCompleto }}">segure para finalizar</text>
+      <text class="pausar" if="{{ !treinoCompleto }}" onclick="pausarESair">PAUSAR / SAIR</text>
     </div>
 
     <!-- EXERCICIO -->
@@ -135,6 +135,14 @@
       </div>
     </div>
 
+    <!-- TEMPO CONCLUIDO: aguarda confirmacao antes do descanso -->
+    <div class="view center" if="{{ vista === 'tempoFim' }}">
+      <text class="olab roxo">TEMPO CONCLUIDO</text>
+      <text class="carga-nome">{{ exNome }}</text>
+      <text class="csub">Toque em OK para continuar</text>
+      <text class="prim ok" onclick="confirmarTempo">OK</text>
+    </div>
+
     <!-- CONCLUIDO -->
     <div class="view center" if="{{ vista === 'concluido' }}">
       <text class="cbig">TREINO</text>
@@ -151,7 +159,7 @@ import storage from '@system.storage'
 import app from '@system.app'
 import vibrator from '@system.vibrator'
 import brightness from '@system.brightness'
-import { SALVOS, novaSessao, alvoEx, metaEx, nomeCompativel, atualizarSessaoSalva } from '../../common/modelo'
+import { SALVOS, novaSessao, alvoEx, metaEx, nomeCompativel, atualizarSessaoSalva, treinoFeito } from '../../common/modelo'
 import { LINHAS, valoresPadrao, ajustar, montarEx } from '../../common/picker'
 import { chaveCarga, ajustarCarga, rotuloCarga, lerCarga, criarCarga } from '../../common/cargas'
 
@@ -188,6 +196,7 @@ export default {
     ativoNome: '',
     ativoAvulso: false,
     treinoView: [],
+    treinoCompleto: false,
     curEx: 0,
     // exercicio
     exSit: '', exNome: '', exBig: '', exDen: '', exAlvo: '', exCarga: 'CARGA', exDots: [], exBotao: 'CHECK', exFim: false,
@@ -262,7 +271,7 @@ export default {
     this.salvar()
   },
   atualizarTela() {
-    var emTreino = ['treino', 'exercicio', 'carga', 'descanso', 'tempo'].indexOf(this.vista) >= 0 || (this.vista === 'picker' && this.pickFrom === 'treino')
+    var emTreino = ['treino', 'exercicio', 'carga', 'descanso', 'tempo', 'tempoFim'].indexOf(this.vista) >= 0 || (this.vista === 'picker' && this.pickFrom === 'treino')
     try { brightness.setKeepScreenOn({ keepScreenOn: this.telaVisivel && emTreino }) } catch (e) {}
   },
 
@@ -275,6 +284,7 @@ export default {
     else if (v === 'picker') { this.mudarVista(this.pickFrom) }
     else if (v === 'descanso') { this.pularRest() }
     else if (v === 'tempo') { this.cancelarTempo() }
+    else if (v === 'tempoFim') { this.mudarVista('menu') }
     else if (v === 'concluido') { this.voltarMenu() }
     else if (v === 'treino' && this.ativo && this.ativo.modo === 'salvo') { this.mudarVista('salvos') }
     else { this.mudarVista('menu') }
@@ -291,7 +301,7 @@ export default {
 
   salvar() {
     if (!this.ativo || this.vista === 'concluido') return
-    if (['treino', 'exercicio', 'carga', 'descanso', 'tempo'].indexOf(this.vista) >= 0) {
+    if (['treino', 'exercicio', 'carga', 'descanso', 'tempo', 'tempoFim'].indexOf(this.vista) >= 0) {
       this.ativo.retomada = { vista: this.vista === 'carga' ? 'exercicio' : this.vista, curEx: this.curEx, restNum: this.restNum, restTotal: this.restTotal, tempoNum: this.tempoNum }
     }
     try { storage.set({ key: CHAVE, value: JSON.stringify(this.ativo) }) } catch (e) {}
@@ -311,6 +321,7 @@ export default {
     this.renderEx()
     if (r.vista === 'descanso' && r.restNum > 0) this.iniciarDescanso(r.restNum, r.restTotal)
     else if (r.vista === 'tempo' && r.tempoNum > 0) this.iniciarTempo(r.tempoNum)
+    else if (r.vista === 'tempoFim') this.mudarVista('tempoFim')
     else this.mudarVista(r.vista === 'exercicio' ? 'exercicio' : 'treino')
   },
 
@@ -350,6 +361,7 @@ export default {
   },
   montarTreinoView() {
     var s = this.ativo
+    this.treinoCompleto = treinoFeito(s)
     var pagina = this
     this.treinoView = s.ex.map(function (e, i) {
       var prog = s.done[i] + '/' + e.series
@@ -432,15 +444,15 @@ export default {
     if (e.tipo === 'tempo') this.iniciarTempo(e.seg)
     else this.concluirSerie()
   },
-  concluirSerie() {
+  concluirSerie(silencioso) {
     var e = this.ativo.ex[this.curEx]
     this.mudarVista('exercicio')
     this.ativo.done[this.curEx]++
     this.salvar()
     this.renderEx()
     this.montarTreinoView()
-    if (this.ativo.done[this.curEx] < e.series) { vibrar('short'); this.iniciarDescanso(e.descanso) }
-    else { vibrar('long'); this.mudarVista('treino') }
+    if (this.ativo.done[this.curEx] < e.series) { if (!silencioso) vibrar('short'); this.iniciarDescanso(e.descanso) }
+    else { if (!silencioso) vibrar('long'); this.mudarVista('treino') }
   },
   desfazer() {
     if (this.ativo.done[this.curEx] > 0) { this.ativo.done[this.curEx]--; this.salvar(); this.renderEx(); this.montarTreinoView() }
@@ -498,11 +510,24 @@ export default {
     var inicio = Date.now()
     tempoTimer = setInterval(function () {
       var resta = total - (Date.now() - inicio) / 1000
-      if (resta <= 0) { pagina.pararTimers(); pagina.concluirSerie() }
+      if (resta <= 0) pagina.terminarTempo()
       else { pagina.tempoNum = Math.ceil(resta); pagina.tempoW = Math.round(resta / total * LARGURA_BAR) }
     }, 100)
   },
-  prontoTempo() { this.pararTimers(); this.concluirSerie() },
+  terminarTempo() {
+    if (this.vista !== 'tempo') return
+    this.pararTimers()
+    this.tempoNum = 0
+    this.tempoW = 0
+    this.renderEx()
+    this.mudarVista('tempoFim')
+    vibrar('long')
+  },
+  prontoTempo() { this.terminarTempo() },
+  confirmarTempo() {
+    if (this.vista !== 'tempoFim') return
+    this.concluirSerie(true)
+  },
   cancelarTempo() { this.pararTimers(); this.mudarVista('exercicio') },
 
   // ---- Descanso ----
@@ -529,6 +554,7 @@ export default {
 
   // ---- Finalizar (segurar) ----
   holdStart() {
+    if (!treinoFeito(this.ativo)) return
     var pagina = this
     this.pararHold()
     var inicio = Date.now()
@@ -541,6 +567,7 @@ export default {
   holdEnd() { this.pararHold(); this.holdW = 0 },
   pararHold() { if (holdTimer !== null) { clearInterval(holdTimer); holdTimer = null } },
   finalizar() {
+    if (!treinoFeito(this.ativo)) return
     this.apagar()
     this.conclSub = this.ativoAvulso ? 'Treino avulso descartado.' : this.ativoNome + ' concluido.'
     this.mudarVista('concluido')
@@ -624,8 +651,8 @@ export default {
 .verde { color: #58d06a; }
 .csub { font-size: 16px; color: #8b9298; text-align: center; margin-top: 8px; }
 .builder-list { height: 136px; }
-.treino-list { height: 122px; }
-.treino-list-avulso { height: 78px; }
+.treino-list { height: 154px; }
+.treino-list-avulso { height: 110px; }
 .pausar { width: 154px; height: 28px; margin-top: 4px; font-size: 15px; color: #ffffff; text-align: center; background-color: #24466b; border-radius: 14px; }
 .finish { width: 154px; height: 32px; margin-top: 6px; font-size: 16px; font-weight: bold; color: #ff7a2e; text-align: center; background-color: #24201c; border-radius: 16px; }
 .holdbar { width: 154px; height: 4px; margin-top: 5px; background-color: #22262a; border-radius: 2px; flex-direction: row; }

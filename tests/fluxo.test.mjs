@@ -22,6 +22,7 @@ function abrir(salvo, opcoes = {}) {
   const leituras = []
   const tela = []
   const saidas = []
+  const vibracoes = []
   const contexto = vm.createContext({
     ...modelo, ...picker, ...cargas,
     app: { terminate() { saidas.push(true) } },
@@ -34,7 +35,7 @@ function abrir(salvo, opcoes = {}) {
       set({ key, value, success }) { dados[key] = value; if (success) success() },
       delete({ key }) { delete dados[key] }
     },
-    vibrator: { vibrate() {} }, brightness: { setKeepScreenOn({ keepScreenOn }) { tela.push(keepScreenOn) } },
+    vibrator: { vibrate({ mode }) { vibracoes.push(mode) } }, brightness: { setKeepScreenOn({ keepScreenOn }) { tela.push(keepScreenOn) } },
     Date: { now: () => agora },
     setInterval(fn) { timers.set(++id, fn); return id },
     clearInterval(id) { timers.delete(id) }
@@ -44,7 +45,7 @@ function abrir(salvo, opcoes = {}) {
   Object.assign(pagina, pagina.private)
   pagina.onInit()
   return {
-    pagina, dados, timers, tela, saidas, concluirLeitura: () => { for (const concluir of leituras) concluir() },
+    pagina, dados, timers, tela, saidas, vibracoes, concluirLeitura: () => { for (const concluir of leituras) concluir() },
     passar(ms) { agora += ms; for (const fn of [...timers.values()]) fn() }
   }
 }
@@ -77,27 +78,34 @@ test('treino salvo: abrir, marcar, pular descanso e desfazer', () => {
   assert.equal(p.ativo.done[0], 0)
 })
 
-test('ultima serie de isometria volta para a lista ao zerar', () => {
+test('ultima serie de isometria aguarda OK antes de voltar para a lista', () => {
   const { pagina: p, passar, timers } = abrir()
   avulso(p, 'tempo', 1)
   p.checar()
   assert.equal(p.vista, 'tempo')
   passar(10000)
+  assert.equal(p.vista, 'tempoFim')
+  assert.equal(p.ativo.done[0], 0)
+  p.confirmarTempo()
   assert.equal(p.vista, 'treino')
   assert.equal(p.exFim, true)
   assert.equal(p.ativo.done[0], 1)
   assert.equal(timers.size, 0)
 })
 
-test('Pronto encerra isometria e inicia descanso entre series', () => {
+test('Pronto encerra isometria e aguarda OK para iniciar descanso', () => {
   const { pagina: p } = abrir()
   avulso(p, 'tempo')
   p.checar()
   p.prontoTempo()
+  assert.equal(p.vista, 'tempoFim')
+  p.confirmarTempo()
   assert.equal(p.vista, 'descanso')
   p.pularRest()
   p.checar()
   p.prontoTempo()
+  assert.equal(p.vista, 'tempoFim')
+  p.confirmarTempo()
   assert.equal(p.vista, 'treino')
   assert.equal(p.exFim, true)
 })
@@ -118,6 +126,11 @@ test('finalizar exige segurar e OK descarta sessao', () => {
   const { pagina: p, passar, dados } = abrir()
   avulso(p)
   p.onBackPress()
+  p.holdStart()
+  passar(1500)
+  assert.notEqual(p.vista, 'concluido')
+  p.ativo.done = p.ativo.ex.map(e => e.series)
+  p.montarTreinoView()
   p.holdStart()
   passar(500)
   p.holdEnd()
@@ -179,6 +192,8 @@ test('todas as series marcadas permanecem ate confirmar FINALIZAR', () => {
   assert.equal(p.temSessao, true)
   p.continuar()
   assert.equal(p.treinoView.every(e => e.feito), true)
+  p.ativo.done = p.ativo.ex.map(e => e.series)
+  p.montarTreinoView()
   p.finalizar()
   p.onHide()
   p.onDestroy()
@@ -263,6 +278,8 @@ test('carga de treino salvo persiste separada da sessao ate ser alterada', () =>
   assert.equal(p.exCarga, '5.5 kg')
   assert.match(p.treinoView[0].prog, /5\.5 kg/)
   const salvas = dados.setgo_cargas
+  p.ativo.done = p.ativo.ex.map(e => e.series)
+  p.montarTreinoView()
   p.finalizar()
   p.voltarMenu()
   assert.equal(dados.setgo_cargas, salvas)
@@ -325,6 +342,8 @@ test('tela apaga antes do treino, nos menus e ao sair; permanece acesa durante t
   p.onShow()
   assert.equal(tela.at(-1), true)
   p.pularRest()
+  p.ativo.done = p.ativo.ex.map(e => e.series)
+  p.montarTreinoView()
   p.finalizar()
   assert.equal(tela.at(-1), false)
   p.voltarMenu()
@@ -397,6 +416,8 @@ test('isometria interrompida nao conclui serie fora do app e retoma o restante',
   assert.equal(nova.vista, 'tempo')
   assert.equal(nova.tempoNum, 7)
   avancar(7000)
+  assert.equal(nova.vista, 'tempoFim')
+  nova.confirmarTempo()
   assert.equal(nova.ativo.done[0], 1)
   assert.equal(nova.vista, 'treino')
 })
@@ -416,4 +437,59 @@ test('pausar e sair salva antes de encerrar e nao finaliza o treino', () => {
   assert.equal(nova.vista, 'descanso')
   assert.equal(nova.curEx, 1)
   assert.equal(nova.ativo.done[1], 1)
+})
+
+
+test('isometria vibra ao zerar, aguarda OK sem timer e vibra ao terminar descanso', () => {
+  const { pagina: p, passar, timers, vibracoes, dados } = abrir()
+  avulso(p, 'tempo', 2)
+  p.checar()
+  passar(10000)
+  assert.equal(p.vista, 'tempoFim')
+  assert.equal(timers.size, 0)
+  assert.deepEqual(vibracoes, ['long'])
+  passar(90000)
+  assert.equal(p.vista, 'tempoFim')
+  assert.equal(p.ativo.done[0], 0)
+  p.onHide()
+  p.onDestroy()
+  const { pagina: nova, passar: avancar, vibracoes: alertas } = abrir(dados.setgo_sessao)
+  nova.continuar()
+  assert.equal(nova.vista, 'tempoFim')
+  assert.deepEqual(alertas, [])
+  nova.confirmarTempo()
+  assert.equal(nova.vista, 'descanso')
+  assert.equal(nova.restNum, 30)
+  assert.equal(nova.ativo.done[0], 1)
+  nova.confirmarTempo()
+  assert.equal(nova.ativo.done[0], 1)
+  for (let i = 0; i < 30; i++) avancar(1000)
+  assert.equal(nova.vista, 'exercicio')
+  assert.deepEqual(alertas, ['long'])
+})
+
+test('finalizar so fica disponivel com todos os exercicios completos e desfazer reverte', () => {
+  const { pagina: p, passar } = abrir()
+  avulso(p, 'reps', 1)
+  p.abrirPickerTreino()
+  p.vals.series = 1
+  p.addPicker()
+  assert.equal(p.treinoCompleto, false)
+  p.holdStart()
+  passar(2000)
+  assert.notEqual(p.vista, 'concluido')
+  p.abrirExercicio(0)
+  p.checar()
+  assert.equal(p.treinoCompleto, false)
+  p.abrirExercicio(1)
+  p.checar()
+  assert.equal(p.treinoCompleto, true)
+  p.abrirExercicio(0)
+  p.desfazer()
+  assert.equal(p.treinoCompleto, false)
+  p.checar()
+  assert.equal(p.treinoCompleto, true)
+  p.holdStart()
+  passar(1500)
+  assert.equal(p.vista, 'concluido')
 })
